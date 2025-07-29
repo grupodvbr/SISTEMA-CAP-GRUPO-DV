@@ -75,6 +75,17 @@
   </style>
 </head>
 <body>
+<nav style="background-color: #007bff; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white;">
+  <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
+  <div>
+    <select onchange="if(this.value) window.location.href=this.value" style="padding: 8px; border-radius: 6px; border: none;">
+      <option value="">Menu</option>
+      <option value="index.html">📤 Enviar CAP</option>
+      <option value="aprovacao.html">✅ Aprovação</option>
+      <option value="relatorios.html">📊 Relatórios</option>
+    </select>
+  </div>
+</nav>
 
   <h1>Envio de CAP - Contas a Pagar</h1>
 
