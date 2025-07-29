@@ -1,1 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Relatórios de CAPs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+    }
 
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .filtros {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    select, input {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .resumo {
+      background: #fff;
+      padding: 20px;
+      margin-bottom: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .resumo h3 {
+      margin-bottom: 10px;
+    }
+
+    .valores {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .valores div {
+      background: #007bff;
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      min-width: 150px;
+    }
+
+    table {
+      width: 100%;
+      background: white;
+      border-collapse: collapse;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Relatórios de CAPs</h1>
+
+  <div class="filtros">
+    <select id="empresaFiltro">
+      <option value="">Todas as Empresas</option>
+    </select>
+    <select id="mesFiltro">
+      <option value="">Mês</option>
+      ${[...Array(12)].map((_, i) => `<option value="${String(i+1).padStart(2, '0')}">${String(i+1).padStart(2, '0')}</option>`).join('')}
+    </select>
+    <select id="anoFiltro">
+      <option value="">Ano</option>
+    </select>
+    <button onclick="filtrar()">Filtrar</button>
+  </div>
+
+  <div class="resumo">
+    <h3>Resumo Financeiro</h3>
+    <div class="valores">
+      <div id="valorConta">Valor na Conta: R$ 0,00</div>
+      <div id="valorPagar">Valor a Pagar: R$ 0,00</div>
+      <div id="contasAbertas">Contas Abertas: R$ 0,00</div>
+    </div>
+  </div>
+
+  <table id="tabelaCAPs">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Empresa</th>
+        <th>Valor Conta</th>
+        <th>Valor Pagar</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- CAPs serão inseridos aqui -->
+    </tbody>
+  </table>
+
+  <script>
+    let dadosCAPs = [];
+
+    async function carregarCAPs() {
+      const res = await fetch('URL_DO_SEU_SCRIPT?consulta=1');
+      dadosCAPs = await res.json();
+      preencherFiltrosAno();
+      preencherFiltroEmpresa();
+      filtrar();
+    }
+
+    function preencherFiltrosAno() {
+      const select = document.getElementById('anoFiltro');
+      const anos = [...new Set(dadosCAPs.map(cap => cap.data.split('/')[2]))];
+      anos.forEach(ano => {
+        const opt = document.createElement('option');
+        opt.value = ano;
+        opt.textContent = ano;
+        select.appendChild(opt);
+      });
+    }
+
+    function preencherFiltroEmpresa() {
+      const select = document.getElementById('empresaFiltro');
+      const empresas = [...new Set(dadosCAPs.map(cap => cap.empresa))];
+      empresas.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp;
+        opt.textContent = emp;
+        select.appendChild(opt);
+      });
+    }
+
+    function filtrar() {
+      const empresa = document.getElementById('empresaFiltro').value;
+      const mes = document.getElementById('mesFiltro').value;
+      const ano = document.getElementById('anoFiltro').value;
+
+      const lista = dadosCAPs.filter(cap => {
+        const [dia, mm, yyyy] = cap.data.split('/');
+        return (!empresa || cap.empresa === empresa) &&
+               (!mes || mm === mes) &&
+               (!ano || yyyy === ano);
+      });
+
+      preencherTabela(lista);
+      preencherResumo(lista);
+    }
+
+    function preencherTabela(lista) {
+      const tbody =
