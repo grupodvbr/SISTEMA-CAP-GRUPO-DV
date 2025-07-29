@@ -162,7 +162,7 @@
 
     // 🔁 FUNÇÃO PARA CARREGAR EVENTOS DO GOOGLE SHEET
     async function carregarEventos() {
-      const res = await fetch("URL_DO_SEU_SCRIPT?eventos=1");
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwh8g8_PBagwy8cvrVsymbdTNu4ZiFJ7_qwvGSaEL4l0KMYvhCNmo70f-jrkuVg67QeAg/exec");
       const dados = await res.json();
       return dados.map(ev => ({
         title: ev.empresa,
