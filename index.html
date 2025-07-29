@@ -34,7 +34,7 @@
       align-items: center;
     }
 
-    .menu select, .menu input {
+    .menu select {
       padding: 8px;
       border-radius: 6px;
       border: none;
@@ -93,12 +93,16 @@
   <nav>
     <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
     <div class="menu">
-      <select id="usuarioSelect" onchange="mostrarSenha()">
+      <select id="usuarioSelect" onchange="autenticarUsuario(this)">
         <option value="">👤 Login</option>
-        <option value="admin">Administrador</option>
-        <option value="financeiro">Financeiro</option>
+        <option value="ADM">ADM</option>
+        <option value="Isabela">Isabela</option>
+        <option value="Rosa">Rosa</option>
+        <option value="Maurício">Maurício</option>
+        <option value="Jaildes">Jaildes</option>
+        <option value="Edicleia">Edicleia</option>
+        <option value="Layra">Layra</option>
       </select>
-      <input type="password" id="senhaInput" placeholder="Digite a senha" style="display:none;" />
       <select onchange="if(this.value) window.location.href=this.value">
         <option value="">📁 Navegar</option>
         <option value="index.html">📤 Enviar CAP</option>
@@ -121,21 +125,41 @@
   </div>
 
   <script>
-    function mostrarSenha() {
-      const usuario = document.getElementById("usuarioSelect").value;
-      document.getElementById("senhaInput").style.display = usuario ? "inline-block" : "none";
+    const senhas = {
+      "ADM": "adm123",
+      "Isabela": "isa456",
+      "Rosa": "rosa789",
+      "Maurício": "mau111",
+      "Jaildes": "jai222",
+      "Edicleia": "edi333",
+      "Layra": "lay444"
+    };
+
+    let usuarioAutenticado = null;
+
+    function autenticarUsuario(select) {
+      const usuario = select.value;
+      if (!usuario) return;
+
+      const senhaCorreta = senhas[usuario];
+      const senhaDigitada = prompt(`Digite a senha para ${usuario}:`);
+
+      if (senhaDigitada === senhaCorreta) {
+        alert(`Bem-vindo(a), ${usuario}!`);
+        usuarioAutenticado = usuario;
+      } else {
+        alert("Senha incorreta!");
+        select.value = "";
+      }
     }
 
     document.getElementById('capForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-
-      const usuario = document.getElementById('usuarioSelect').value;
-      const senha = document.getElementById('senhaInput').value;
       const fileInput = document.getElementById('arquivo');
       const file = fileInput.files[0];
 
-      if (!usuario || !senha) {
-        alert('Por favor, selecione o usuário e insira a senha.');
+      if (!usuarioAutenticado || !file) {
+        alert("Preencha os campos e autentique-se para enviar o CAP.");
         return;
       }
 
@@ -144,8 +168,7 @@
         const base64 = btoa(reader.result);
         const form = new FormData();
         form.append("arquivo", base64);
-        form.append("usuario", usuario);
-        form.append("senha", senha);
+        form.append("usuario", usuarioAutenticado);
 
         const res = await fetch("URL_DO_SEU_SCRIPT", {
           method: "POST",
@@ -156,22 +179,20 @@
         alert(resposta.mensagem || "CAP enviado com sucesso!");
         fileInput.value = '';
       };
-
       reader.readAsBinaryString(file);
     });
 
-    // 🔁 FUNÇÃO PARA CARREGAR EVENTOS DO GOOGLE SHEET
     async function carregarEventos() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwh8g8_PBagwy8cvrVsymbdTNu4ZiFJ7_qwvGSaEL4l0KMYvhCNmo70f-jrkuVg67QeAg/exec");
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwh8g8_PBagwy8cvrVsymbdTNu4ZiFJ7_qwvGSaEL4l0KMYvhCNmo70f-jrkuVg67QeAg/exec?eventos=1");
       const dados = await res.json();
       return dados.map(ev => ({
-        title: ev.empresa,
-        start: ev.data, // formato: YYYY-MM-DD
+        title: ev.title,
+        start: ev.start,
+        allDay: true,
         color: '#007bff'
       }));
     }
 
-    // 🎯 INICIALIZA O CALENDÁRIO
     document.addEventListener('DOMContentLoaded', async function() {
       const calendarEl = document.getElementById('calendar');
       const eventos = await carregarEventos();
