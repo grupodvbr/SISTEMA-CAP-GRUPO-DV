@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <title>Sistema de CAP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- FullCalendar -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -18,75 +23,42 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
     }
 
-    nav select {
+    .menu {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .menu select, .menu input {
       padding: 8px;
       border-radius: 6px;
       border: none;
-      font-size: 16px;
+      font-size: 14px;
     }
 
     .container {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: flex-start;
+      max-width: 1200px;
+      margin: auto;
       padding: 40px 20px;
-      gap: 40px;
     }
 
-    .login-box {
+    #calendar {
       background: #fff;
       padding: 20px;
-      border-radius: 8px;
-      width: 250px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    .login-box h3 {
-      margin-bottom: 15px;
-      text-align: center;
-    }
-
-    .login-box select,
-    .login-box input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-    }
-
-    .calendar-box {
-      flex-grow: 1;
-      background: #fff;
-      padding: 30px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 800px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .calendar-box h2 {
-      margin-bottom: 20px;
-    }
-
-    .calendar-box input[type="date"] {
-      font-size: 18px;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
     }
 
     .upload-box {
-      margin-top: 40px;
       background: #fff;
       padding: 20px;
       border-radius: 10px;
-      max-width: 800px;
-      width: 100%;
+      margin-top: 40px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
 
@@ -120,9 +92,15 @@
 
   <nav>
     <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
-    <div>
+    <div class="menu">
+      <select id="usuarioSelect" onchange="mostrarSenha()">
+        <option value="">👤 Login</option>
+        <option value="admin">Administrador</option>
+        <option value="financeiro">Financeiro</option>
+      </select>
+      <input type="password" id="senhaInput" placeholder="Digite a senha" style="display:none;" />
       <select onchange="if(this.value) window.location.href=this.value">
-        <option value="">Relatórios</option>
+        <option value="">📁 Navegar</option>
         <option value="index.html">📤 Enviar CAP</option>
         <option value="aprovacao.html">✅ Aprovação</option>
         <option value="relatorios.html">📊 Relatórios</option>
@@ -131,50 +109,33 @@
   </nav>
 
   <div class="container">
-    <!-- Login -->
-    <div class="login-box">
-      <h3>Login</h3>
-      <select id="usuario">
-        <option value="">Selecione o usuário</option>
-        <option value="financeiro">Financeiro</option>
-        <option value="admin">Administrador</option>
-        <!-- Adicione mais usuários se desejar -->
-      </select>
-      <input type="password" id="senha" placeholder="Senha">
-    </div>
+    <div id="calendar"></div>
 
-    <!-- Calendário -->
-    <div class="calendar-box">
-      <h2>Selecione a Data</h2>
-      <input type="date" id="dataSelecionada">
-
-      <!-- Upload abaixo do calendário -->
-      <div class="upload-box">
-        <form id="capForm">
-          <label for="arquivo">Upload de Planilha (Excel):</label>
-          <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
-          <button type="submit">Enviar CAP</button>
-        </form>
-      </div>
+    <div class="upload-box">
+      <form id="capForm">
+        <label for="arquivo">Upload de Planilha (Excel):</label>
+        <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
+        <button type="submit">Enviar CAP</button>
+      </form>
     </div>
   </div>
 
   <script>
+    function mostrarSenha() {
+      const usuario = document.getElementById("usuarioSelect").value;
+      document.getElementById("senhaInput").style.display = usuario ? "inline-block" : "none";
+    }
+
     document.getElementById('capForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      const usuario = document.getElementById('usuario').value;
-      const senha = document.getElementById('senha').value;
+      const usuario = document.getElementById('usuarioSelect').value;
+      const senha = document.getElementById('senhaInput').value;
       const fileInput = document.getElementById('arquivo');
       const file = fileInput.files[0];
 
       if (!usuario || !senha) {
-        alert('Por favor, preencha usuário e senha.');
-        return;
-      }
-
-      if (!file) {
-        alert('Selecione uma planilha para enviar.');
+        alert('Por favor, selecione o usuário e insira a senha.');
         return;
       }
 
@@ -197,6 +158,32 @@
       };
 
       reader.readAsBinaryString(file);
+    });
+
+    // 🔁 FUNÇÃO PARA CARREGAR EVENTOS DO GOOGLE SHEET
+    async function carregarEventos() {
+      const res = await fetch("URL_DO_SEU_SCRIPT?eventos=1");
+      const dados = await res.json();
+      return dados.map(ev => ({
+        title: ev.empresa,
+        start: ev.data, // formato: YYYY-MM-DD
+        color: '#007bff'
+      }));
+    }
+
+    // 🎯 INICIALIZA O CALENDÁRIO
+    document.addEventListener('DOMContentLoaded', async function() {
+      const calendarEl = document.getElementById('calendar');
+      const eventos = await carregarEventos();
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        height: 'auto',
+        events: eventos
+      });
+
+      calendar.render();
     });
   </script>
 
