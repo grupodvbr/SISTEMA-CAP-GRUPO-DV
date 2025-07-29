@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Sistema de CAP - Envio</title>
+  <title>Envio de CAP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
@@ -13,11 +13,6 @@
     }
 
     nav {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 999;
       background-color: #007bff;
       padding: 15px;
       display: flex;
@@ -34,10 +29,12 @@
     }
 
     .conteudo {
-      padding: 100px 20px 20px;
+      padding: 80px 20px;
+      max-width: 600px;
+      margin: auto;
     }
 
-    h1, h2 {
+    h1 {
       text-align: center;
       color: #333;
     }
@@ -46,18 +43,16 @@
       background: #fff;
       padding: 20px;
       border-radius: 8px;
-      max-width: 600px;
-      margin: 0 auto 40px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
     label {
       display: block;
-      margin-top: 15px;
+      margin-top: 10px;
       font-weight: bold;
     }
 
-    input, select {
+    input[type="file"] {
       width: 100%;
       padding: 10px;
       margin-top: 5px;
@@ -76,28 +71,6 @@
       font-size: 16px;
       width: 100%;
     }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
-    th, td {
-      padding: 10px;
-      border: 1px solid #ccc;
-      text-align: center;
-    }
-
-    th {
-      background-color: #007bff;
-      color: white;
-    }
-
-    .status {
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
@@ -115,81 +88,42 @@
   </nav>
 
   <div class="conteudo">
-
-    <h1>Envio de CAP - Contas a Pagar</h1>
+    <h1>Envio de CAP - Planilha Excel</h1>
 
     <form id="capForm">
-      <label for="empresa">Empresa:</label>
-      <input type="text" id="empresa" name="empresa" required>
-
-      <label for="valorConta">Valor na Conta (R$):</label>
-      <input type="number" step="0.01" id="valorConta" name="valorConta" required>
-
-      <label for="valorPagar">Valor a Pagar (R$):</label>
-      <input type="number" step="0.01" id="valorPagar" name="valorPagar" required>
-
       <label for="arquivo">Upload de Planilha (Excel):</label>
       <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
 
       <button type="submit">Enviar CAP</button>
     </form>
-
-    <h2>CAPs Enviados</h2>
-    <table id="tabelaCAPs">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Empresa</th>
-          <th>Valor Conta</th>
-          <th>Valor Pagar</th>
-          <th>Status</th>
-          <th>Arquivo</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Dados preenchidos via script -->
-      </tbody>
-    </table>
   </div>
 
   <script>
-    const form = document.getElementById('capForm');
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('capForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      const formData = new FormData(form);
-      const response = await fetch('URL_DO_SEU_SCRIPT', {
-        method: 'POST',
-        body: formData
-      });
+      const input = document.getElementById('arquivo');
+      const file = input.files[0];
+      if (!file) return alert("Por favor, selecione uma planilha.");
 
-      const result = await response.json();
-      alert(result.mensagem || 'Enviado com sucesso!');
-      form.reset();
-      carregarCAPs();
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64 = btoa(reader.result);
+        const form = new FormData();
+        form.append("arquivo", base64);
+
+        const response = await fetch("https://script.google.com/macros/s/AKfycbwO7Vbk5Fbqxp5rRQZcB8WbiTAu4fc3OXBbNmxQLUcIlTvIFm7W5Sn-LaygILc8yrhVaQ/exec", {
+          method: "POST",
+          body: form
+        });
+
+        const resultado = await response.json();
+        alert(resultado.mensagem || "CAP enviado com sucesso!");
+        input.value = '';
+      };
+
+      reader.readAsBinaryString(file);
     });
-
-    async function carregarCAPs() {
-      const tabela = document.querySelector('#tabelaCAPs tbody');
-      tabela.innerHTML = '';
-      const res = await fetch('URL_DO_SEU_SCRIPT?consulta=1');
-      const dados = await res.json();
-
-      dados.forEach(cap => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${cap.data}</td>
-          <td>${cap.empresa}</td>
-          <td>R$ ${parseFloat(cap.valorConta).toFixed(2)}</td>
-          <td>R$ ${parseFloat(cap.valorPagar).toFixed(2)}</td>
-          <td class="status">${cap.status}</td>
-          <td><a href="${cap.arquivo}" target="_blank">Ver Excel</a></td>
-        `;
-        tabela.appendChild(tr);
-      });
-    }
-
-    carregarCAPs();
   </script>
 
 </body>
