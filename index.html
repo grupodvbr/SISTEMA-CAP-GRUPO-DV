@@ -9,10 +9,35 @@
       font-family: Arial, sans-serif;
       background: #f2f2f2;
       margin: 0;
-      padding: 20px;
+      padding: 0;
     }
 
-    h1 {
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      background-color: #007bff;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    nav select {
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+    }
+
+    .conteudo {
+      padding: 100px 20px 20px;
+    }
+
+    h1, h2 {
       text-align: center;
       color: #333;
     }
@@ -22,7 +47,7 @@
       padding: 20px;
       border-radius: 8px;
       max-width: 600px;
-      margin: 0 auto 30px;
+      margin: 0 auto 40px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
 
@@ -55,7 +80,8 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 30px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
 
     th, td {
@@ -75,52 +101,56 @@
   </style>
 </head>
 <body>
-<nav style="background-color: #007bff; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: white;">
-  <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
-  <div>
-    <select onchange="if(this.value) window.location.href=this.value" style="padding: 8px; border-radius: 6px; border: none;">
-      <option value="">Menu</option>
-      <option value="index.html">📤 Enviar CAP</option>
-      <option value="aprovacao.html">✅ Aprovação</option>
-      <option value="relatorios.html">📊 Relatórios</option>
-    </select>
+
+  <nav>
+    <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
+    <div>
+      <select onchange="if(this.value) window.location.href=this.value">
+        <option value="">Menu</option>
+        <option value="index.html">📤 Enviar CAP</option>
+        <option value="aprovacao.html">✅ Aprovação</option>
+        <option value="relatorios.html">📊 Relatórios</option>
+      </select>
+    </div>
+  </nav>
+
+  <div class="conteudo">
+
+    <h1>Envio de CAP - Contas a Pagar</h1>
+
+    <form id="capForm">
+      <label for="empresa">Empresa:</label>
+      <input type="text" id="empresa" name="empresa" required>
+
+      <label for="valorConta">Valor na Conta (R$):</label>
+      <input type="number" step="0.01" id="valorConta" name="valorConta" required>
+
+      <label for="valorPagar">Valor a Pagar (R$):</label>
+      <input type="number" step="0.01" id="valorPagar" name="valorPagar" required>
+
+      <label for="arquivo">Upload de Planilha (Excel):</label>
+      <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
+
+      <button type="submit">Enviar CAP</button>
+    </form>
+
+    <h2>CAPs Enviados</h2>
+    <table id="tabelaCAPs">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Empresa</th>
+          <th>Valor Conta</th>
+          <th>Valor Pagar</th>
+          <th>Status</th>
+          <th>Arquivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Dados preenchidos via script -->
+      </tbody>
+    </table>
   </div>
-</nav>
-
-  <h1>Envio de CAP - Contas a Pagar</h1>
-
-  <form id="capForm">
-    <label for="empresa">Empresa:</label>
-    <input type="text" id="empresa" name="empresa" required>
-
-    <label for="valorConta">Valor na Conta (R$):</label>
-    <input type="number" step="0.01" id="valorConta" name="valorConta" required>
-
-    <label for="valorPagar">Valor a Pagar (R$):</label>
-    <input type="number" step="0.01" id="valorPagar" name="valorPagar" required>
-
-    <label for="arquivo">Upload de Planilha (Excel):</label>
-    <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
-
-    <button type="submit">Enviar CAP</button>
-  </form>
-
-  <h2 style="text-align:center;">CAPs Enviados</h2>
-  <table id="tabelaCAPs">
-    <thead>
-      <tr>
-        <th>Data</th>
-        <th>Empresa</th>
-        <th>Valor Conta</th>
-        <th>Valor Pagar</th>
-        <th>Status</th>
-        <th>Arquivo</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Dados serão preenchidos via JavaScript -->
-    </tbody>
-  </table>
 
   <script>
     const form = document.getElementById('capForm');
@@ -159,7 +189,6 @@
       });
     }
 
-    // Carregar na inicialização
     carregarCAPs();
   </script>
 
