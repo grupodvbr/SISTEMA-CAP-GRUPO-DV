@@ -1,1 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aprovação de CAPs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f8f8;
+      margin: 0;
+      padding: 20px;
+    }
 
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .filtros {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    select, input[type="date"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .btn {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+    }
+
+    .aprovado {
+      background: #28a745;
+    }
+
+    .reprovado {
+      background: #dc3545;
+    }
+
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>CAPs - Aprovação</h1>
+
+  <div class="filtros">
+    <select id="empresaFiltro">
+      <option value="">Todas as Empresas</option>
+    </select>
+    <input type="date" id="dataFiltro" />
+    <button onclick="filtrar()">Filtrar</button>
+  </div>
+
+  <table id="tabelaCAPs">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Empresa</th>
+        <th>Valor Conta</th>
+        <th>Valor Pagar</th>
+        <th>Status</th>
+        <th>Arquivo</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Linhas preenchidas via JS -->
+    </tbody>
+  </table>
+
+  <script>
+    let dadosCAPs = [];
+
+    async function carregarCAPs() {
+      const res = await fetch('URL_DO_SEU_SCRIPT?consulta=1');
+      dadosCAPs = await res.json();
+      preencherTabela(dadosCAPs);
+      preencherFiltroEmpresa();
+    }
+
+    function preencherTabela(lista) {
+      const tbody = document.querySelector('#tabelaCAPs tbody');
+      tbody.innerHTML = '';
+
+      lista.forEach((cap, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${cap.data}</td>
+          <td>${cap.empresa}</td>
+          <td>R$ ${parseFloat(cap.valorConta).toFixed(2)}</td>
+          <td>R$ ${parseFloat(cap.valorPagar).toFixed(2)}</td>
+          <td>${cap.status}</td>
+          <td><a href="${cap.arquivo}" target="_blank">Ver</a></td>
+          <td>
+            <button class="btn aprovado" onclick="atualizarStatus(${index}, 'APROVADO')">Aprovar</button>
+            <button class="btn reprovado" onclick="atualizarStatus(${index}, 'REPROVADO')">Reprovar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function preencherFiltroEmpresa() {
+      const select = document.getElementById('empresaFiltro');
+      const empresas = [...new Set(dadosCAPs.map(cap => cap.empresa))];
+      empresas.forEach(emp => {
+        const opt = document.createElement('option');
+        opt.value = emp;
+        opt.textContent = emp;
+        select.appendChild(opt);
+      });
+    }
+
+    function filtrar() {
+      const empresa = document.getElementById('empresaFiltro').value;
+      const data = document.getElementById('dataFiltro').value;
+      const listaFiltrada = dadosCAPs.filter(cap => {
+        return (!empresa || cap.empresa === empresa) &&
+               (!data || cap.data.split('/').reverse().join('-') === data);
+      });
+      preencherTabela(listaFiltrada);
+    }
+
+    async function atualizarStatus(index, novoStatus) {
+      const cap = dadosCAPs[index];
+      const response = await fetch('URL_DO_SEU_SCRIPT', {
+        method: 'POST',
+        body: JSON.stringify({
+          acao: 'atualizarStatus',
+          data: cap.data,
+          empresa: cap.empresa,
+          status: novoStatus
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const res = await response.json();
+      alert(res.mensagem || 'Status atualizado!');
+      carregarCAPs();
+    }
+
+    carregarCAPs();
+  </script>
+
+</body>
+</html>
