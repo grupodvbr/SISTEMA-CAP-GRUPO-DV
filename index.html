@@ -1,1 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Sistema de CAP - Envio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
 
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      margin: 0 auto 30px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: center;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .status {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Envio de CAP - Contas a Pagar</h1>
+
+  <form id="capForm">
+    <label for="empresa">Empresa:</label>
+    <input type="text" id="empresa" name="empresa" required>
+
+    <label for="valorConta">Valor na Conta (R$):</label>
+    <input type="number" step="0.01" id="valorConta" name="valorConta" required>
+
+    <label for="valorPagar">Valor a Pagar (R$):</label>
+    <input type="number" step="0.01" id="valorPagar" name="valorPagar" required>
+
+    <label for="arquivo">Upload de Planilha (Excel):</label>
+    <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
+
+    <button type="submit">Enviar CAP</button>
+  </form>
+
+  <h2 style="text-align:center;">CAPs Enviados</h2>
+  <table id="tabelaCAPs">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Empresa</th>
+        <th>Valor Conta</th>
+        <th>Valor Pagar</th>
+        <th>Status</th>
+        <th>Arquivo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Dados serão preenchidos via JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    const form = document.getElementById('capForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+      const response = await fetch('URL_DO_SEU_SCRIPT', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      alert(result.mensagem || 'Enviado com sucesso!');
+      form.reset();
+      carregarCAPs();
+    });
+
+    async function carregarCAPs() {
+      const tabela = document.querySelector('#tabelaCAPs tbody');
+      tabela.innerHTML = '';
+      const res = await fetch('URL_DO_SEU_SCRIPT?consulta=1');
+      const dados = await res.json();
+
+      dados.forEach(cap => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${cap.data}</td>
+          <td>${cap.empresa}</td>
+          <td>R$ ${parseFloat(cap.valorConta).toFixed(2)}</td>
+          <td>R$ ${parseFloat(cap.valorPagar).toFixed(2)}</td>
+          <td class="status">${cap.status}</td>
+          <td><a href="${cap.arquivo}" target="_blank">Ver Excel</a></td>
+        `;
+        tabela.appendChild(tr);
+      });
+    }
+
+    // Carregar na inicialização
+    carregarCAPs();
+  </script>
+
+</body>
+</html>
