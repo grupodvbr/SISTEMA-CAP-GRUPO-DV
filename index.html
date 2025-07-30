@@ -2,199 +2,286 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Sistema de CAP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- FullCalendar -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Metas de Receita - Grupo DV</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
+      background: #e8f5e9;
+      margin: 0;
+      padding: 20px;
     }
-
-    nav {
-      background-color: #007bff;
-      color: white;
-      padding: 15px 20px;
+    h1 {
+      text-align: center;
+    }
+    .filtros {
+      max-width: 600px;
+      margin: 0 auto 10px;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
     }
-
-    .menu {
+    .filtros label {
       display: flex;
-      gap: 15px;
-      align-items: center;
+      flex-direction: column;
+      font-size: 0.9em;
     }
-
-    .menu select {
+    .filtros input, .filtros select {
       padding: 8px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      padding: 40px 20px;
-    }
-
-    #calendar {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    .upload-box {
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      margin-top: 40px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
-    .upload-box label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
-    .upload-box input[type="file"] {
-      width: 100%;
-      padding: 10px;
+      font-size: 1em;
       border-radius: 6px;
       border: 1px solid #ccc;
-      margin-bottom: 15px;
     }
-
-    .upload-box button {
-      background: #007bff;
+    #btnWhats {
+      background-color: #25d366;
       color: white;
       border: none;
-      padding: 12px 20px;
-      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 1em;
+      border-radius: 8px;
       cursor: pointer;
-      width: 100%;
-      font-size: 16px;
+      display: block;
+      margin: 10px auto 10px;
+    }
+    .metas-box {
+      background: #d0f0d5;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px auto;
+      max-width: 600px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+    .metas-box h2 {
+      margin: 0 0 10px;
+    }
+    .metas-box p {
+      margin: 3px 0;
+      font-size: 0.95em;
+    }
+    #graficoContainer {
+      max-width: 700px;
+      margin: 20px auto;
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
-    <div class="menu">
-      <select id="usuarioSelect" onchange="autenticarUsuario(this)">
-        <option value="">👤 Login</option>
-        <option value="ADM">ADM</option>
-      </select>
-      <select onchange="if(this.value) window.location.href=this.value">
-        <option value="">📁 Navegar</option>
-        <option value="index.html">📤 Enviar CAP</option>
-        <option value="aprovacao.html">✅ Aprovação</option>
-        <option value="relatorios.html">📊 Relatórios</option>
-      </select>
-    </div>
-  </nav>
+<h1>📊 Painel de Metas - Grupo DV</h1>
 
-  <div class="container">
-    <div id="calendar"></div>
+<div class="filtros">
+  <label>
+    Data Início:
+    <input type="date" id="dataInicio">
+  </label>
+  <label>
+    Data Fim:
+    <input type="date" id="dataFim">
+  </label>
+  <label>
+    Empresa:
+    <select id="empresaFiltro">
+      <option value="">Todas</option>
+    </select>
+  </label>
+  <button onclick="carregarMetas()">Filtrar</button>
+</div>
 
-    <div class="upload-box">
-      <form id="capForm">
-        <label for="arquivo">Upload de Planilha (Excel):</label>
-        <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
-        <button type="submit">Enviar CAP</button>
-      </form>
-    </div>
-  </div>
+<button id="btnWhats">📲 Enviar via WhatsApp</button>
 
-  <script>
-    const senhas = {
-      "ADM": "00",
-    };
+<div id="painelMetas"></div>
+<div id="graficoContainer">
+  <canvas id="graficoFaturamento"></canvas>
+</div>
 
-    let usuarioAutenticado = null;
+<script>
+const urlBase = 'https://script.google.com/macros/s/AKfycbzyiL6yNCj_FYWiQ2PS88mthToCvWM1wJ0q7CQy8asyg-59L8YezKzFY6d-lgQU0ni3/exec';
+let chart;
 
-    function autenticarUsuario(select) {
-      const usuario = select.value;
-      if (!usuario) return;
+function formatarNumero(valor) {
+  return parseFloat(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+}
 
-      const senhaCorreta = senhas[usuario];
-      const senhaDigitada = prompt(`Digite a senha para ${usuario}:`);
+function formatarDataBR(dataISO) {
+  const [y, m, d] = dataISO.split("-");
+  return `${d}/${m}/${y}`;
+}
 
-      if (senhaDigitada === senhaCorreta) {
-        alert(`Bem-vindo(a), ${usuario}!`);
-        usuarioAutenticado = usuario;
-      } else {
-        alert("Senha incorreta!");
-        select.value = "";
-      }
-    }
+function preencherDataOntem() {
+  const ontem = new Date();
+  ontem.setDate(ontem.getDate() - 1);
+  const data = ontem.toISOString().split('T')[0];
+  document.getElementById("dataInicio").value = data;
+  document.getElementById("dataFim").value = data;
+}
 
-    document.getElementById('capForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const fileInput = document.getElementById('arquivo');
-      const file = fileInput.files[0];
+function contarDiasUteis(inicio, fim) {
+  let count = 0;
+  const data = new Date(inicio);
+  while (data <= fim) {
+    const diaSemana = data.getDay();
+    if (diaSemana !== 0 && diaSemana !== 6) count++;
+    data.setDate(data.getDate() + 1);
+  }
+  return count;
+}
 
-      if (!usuarioAutenticado || !file) {
-        alert("Preencha os campos e autentique-se para enviar o CAP.");
-        return;
-      }
+async function carregarMetas() {
+  const painel = document.getElementById("painelMetas");
+  painel.innerHTML = "Carregando...";
 
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const base64 = btoa(reader.result);
-        const form = new FormData();
-        form.append("arquivo", base64);
-        form.append("usuario", usuarioAutenticado);
+  const dataInicio = document.getElementById("dataInicio").value;
+  const dataFim = document.getElementById("dataFim").value;
+  const empresa = document.getElementById("empresaFiltro").value;
 
-        const res = await fetch("URL_DO_SEU_SCRIPT", {
-          method: "POST",
-          body: form
-        });
+  let diasUteisMes = 22;
+  let diasUteisAteData = 1;
 
-        const resposta = await res.json();
-        alert(resposta.mensagem || "CAP enviado com sucesso!");
-        fileInput.value = '';
-      };
-      reader.readAsBinaryString(file);
-    });
+  if (dataFim) {
+    const dataRef = new Date(dataFim);
+    const mesRef = dataRef.getMonth();
+    const anoRef = dataRef.getFullYear();
+    const primeiroDiaMes = new Date(anoRef, mesRef, 1);
+    const ultimoDiaMes = new Date(anoRef, mesRef + 1, 0);
 
-    async function carregarEventos() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwh8g8_PBagwy8cvrVsymbdTNu4ZiFJ7_qwvGSaEL4l0KMYvhCNmo70f-jrkuVg67QeAg/exec?eventos=1");
-      const dados = await res.json();
-      return dados.map(ev => ({
-        title: ev.title,
-        start: ev.start,
-        allDay: true,
-        color: '#007bff'
-      }));
-    }
+    diasUteisMes = contarDiasUteis(primeiroDiaMes, ultimoDiaMes);
+    diasUteisAteData = contarDiasUteis(primeiroDiaMes, dataRef);
+  }
 
-    document.addEventListener('DOMContentLoaded', async function() {
-      const calendarEl = document.getElementById('calendar');
-      const eventos = await carregarEventos();
+  const params = new URLSearchParams();
+  if (dataInicio) params.append("dataInicio", dataInicio);
+  if (dataFim) params.append("dataFim", dataFim);
+  if (empresa) params.append("empresa", empresa);
 
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'pt-br',
-        height: 'auto',
-        events: eventos
+  try {
+    const resposta = await fetch(`${urlBase}?${params.toString()}`);
+    const metas = await resposta.json();
+
+    const empresas = [...new Set(metas.map(m => m.Empresa))];
+    const select = document.getElementById("empresaFiltro");
+    if (select.options.length <= 1) {
+      empresas.forEach(e => {
+        const opt = document.createElement("option");
+        opt.value = e;
+        opt.textContent = e;
+        select.appendChild(opt);
       });
+    }
 
-      calendar.render();
+    painel.innerHTML = "";
+    if (metas.length === 0) {
+      painel.innerHTML = "<p style='text-align:center'>Nenhum dado encontrado.</p>";
+      esconderGrafico();
+      return;
+    }
+
+    metas.forEach(linha => {
+      const previsto = parseFloat(linha["Previsto"]);
+      const realizado = parseFloat(linha["Realizado"].toString().replace(",", "."));
+      const atingido = previsto > 0 ? (realizado / previsto) * 100 : 0;
+      const mediaDiaria = diasUteisAteData > 0 ? realizado / diasUteisAteData : 0;
+      const previsaoFinal = mediaDiaria * diasUteisMes;
+      const previsaoPercentual = previsto > 0 ? (previsaoFinal / previsto) * 100 : 0;
+
+      const div = document.createElement("div");
+      div.className = "metas-box";
+      div.innerHTML = `
+        <h2>${linha["Empresa"]}</h2>
+        <p>💰 Previsto: R$ ${formatarNumero(previsto)}</p>
+        <p>✅ Realizado: R$ ${formatarNumero(realizado)}</p>
+        <p>📊 Atingido: ${formatarNumero(atingido)}%</p>
+        <p>📈 Previsão: R$ ${formatarNumero(previsaoFinal)} (${formatarNumero(previsaoPercentual)}%)</p>
+      `;
+      painel.appendChild(div);
     });
-  </script>
+
+    if (empresa) mostrarGrafico(metas);
+    else esconderGrafico();
+
+  } catch (e) {
+    painel.innerHTML = "Erro ao carregar dados.";
+    console.error(e);
+  }
+}
+
+function mostrarGrafico(metas) {
+  const ctx = document.getElementById('graficoFaturamento').getContext('2d');
+  metas.sort((a, b) => new Date(a.Data) - new Date(b.Data));
+  const dias = metas.map(m => m["Data"]?.split("-").reverse().join("/"));
+  const valores = metas.map(m => parseFloat(m["Realizado"].toString().replace(",", ".")));
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dias,
+      datasets: [{
+        label: 'Evolução do Faturamento',
+        data: valores,
+        fill: false,
+        borderColor: '#388e3c',
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true },
+        title: {
+          display: true,
+          text: 'Evolução diária do faturamento'
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return 'R$ ' + value.toLocaleString('pt-BR');
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function esconderGrafico() {
+  if (chart) {
+    chart.destroy();
+    chart = null;
+  }
+}
+
+document.getElementById("btnWhats").addEventListener("click", () => {
+  const dataInicio = document.getElementById("dataInicio").value;
+  const dataFim = document.getElementById("dataFim").value;
+  const periodo = (dataInicio && dataFim)
+    ? `${formatarDataBR(dataInicio)} - ${formatarDataBR(dataFim)}`
+    : "Período não informado";
+
+  const blocos = document.querySelectorAll(".metas-box");
+  if (!blocos.length) return alert("Nenhum dado para enviar.");
+
+  let mensagem = `📆 Resumo da meta de receitas ${periodo}\n\n`;
+  blocos.forEach(box => {
+    const titulo = box.querySelector("h2").innerText;
+    const linhas = [...box.querySelectorAll("p")].map(p => p.innerText).join("\n");
+    mensagem += `*${titulo}*\n${linhas}\n\n`;
+  });
+
+  const numero = "5577999761436";
+  const link = `https://wa.me/${numero}?text=${encodeURIComponent(mensagem.trim())}`;
+  window.open(link, "_blank");
+});
+
+window.onload = () => {
+  preencherDataOntem();
+  carregarMetas();
+};
+</script>
 
 </body>
 </html>
