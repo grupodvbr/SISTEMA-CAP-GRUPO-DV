@@ -86,6 +86,38 @@
       width: 100%;
       font-size: 16px;
     }
+
+    .historico {
+      margin-top: 40px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .historico h3 {
+      margin-top: 0;
+    }
+
+    .historico ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .historico li {
+      padding: 8px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .historico button {
+      margin-top: 10px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -94,7 +126,7 @@
     <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
     <div class="menu">
       <select id="usuarioSelect" onchange="autenticarUsuario(this)">
-        <option value="">👤 Login</option>
+        <option value="">🕤 Login</option>
         <option value="MERCATTO">MERCATTO</option>
         <option value="DELICIA">DELÍCIA GOURMET</option>
         <option value="VILLA">VILLA GOURMET</option>
@@ -118,6 +150,12 @@
         <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
         <button type="submit">Enviar CAP</button>
       </form>
+    </div>
+
+    <div class="historico">
+      <h3>Histórico de Envios</h3>
+      <ul id="listaHistorico"></ul>
+      <button onclick="limparHistorico()">Limpar Histórico</button>
     </div>
   </div>
 
@@ -164,7 +202,8 @@
           empresa: dadosUsuario.empresa
         };
         select.options[select.selectedIndex].textContent = `${usuario} - ${dadosUsuario.empresa}`;
-        renderizarCalendario(); // carrega o calendário do usuário
+        renderizarCalendario();
+        exibirHistorico();
       } else {
         alert("Senha incorreta!");
         select.value = "";
@@ -173,8 +212,7 @@
 
     function renderizarCalendario() {
       const calendarEl = document.getElementById('calendar');
-      calendarEl.innerHTML = ""; // Limpa anterior
-
+      calendarEl.innerHTML = "";
       if (!usuarioAutenticado) return;
 
       const eventos = eventosPorUsuario[usuarioAutenticado.nome] || [];
@@ -212,7 +250,7 @@
         form.append("usuario", usuarioAutenticado.nome);
         form.append("empresa", usuarioAutenticado.empresa);
 
-        const res = await fetch("https://script.google.com/macros/s/AKfycbx4-xKpPyCJAtPngpEzrZt68YU7dO9J9hq8WRNG2n7q93KtJDFWF-LH2ik-S2KTY54KkA/exe", {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbx4-xKpPyCJAtPngpEzrZt68YU7dO9J9hq8WRNG2n7q93KtJDFWF-LH2ik-S2KTY54KkA/exec", {
           method: "POST",
           body: form
         });
@@ -220,15 +258,38 @@
         const resposta = await res.json();
         alert(resposta.mensagem || "CAP enviado com sucesso!");
         fileInput.value = '';
+
+        // Atualiza histórico local
+        const historico = JSON.parse(localStorage.getItem("historicoCAP") || "[]");
+        historico.push({
+          nome: file.name,
+          data: new Date().toLocaleString(),
+          empresa: usuarioAutenticado.empresa,
+          usuario: usuarioAutenticado.nome
+        });
+        localStorage.setItem("historicoCAP", JSON.stringify(historico));
+        exibirHistorico();
       };
       reader.readAsBinaryString(file);
     });
 
-    // O calendário só será exibido após o login
-    document.addEventListener('DOMContentLoaded', function() {
-      // Nada a fazer por enquanto
-    });
-  </script>
+    function exibirHistorico() {
+      const lista = document.getElementById("listaHistorico");
+      lista.innerHTML = "";
+      const historico = JSON.parse(localStorage.getItem("historicoCAP") || "[]");
+      historico.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = `${item.data} - ${item.empresa} - ${item.nome}`;
+        lista.appendChild(li);
+      });
+    }
 
+    function limparHistorico() {
+      if (confirm("Tem certeza que deseja limpar o histórico local de envios?")) {
+        localStorage.removeItem("historicoCAP");
+        exibirHistorico();
+      }
+    }
+  </script>
 </body>
 </html>
