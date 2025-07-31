@@ -212,7 +212,7 @@
         form.append("usuario", usuarioAutenticado.nome);
         form.append("empresa", usuarioAutenticado.empresa);
 
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzLlZYwgThBTN8P24JFNeJ3JQCh8Fw38Dx2VmapJXLtnXTygivttsMB9CvrB1eMfpFS1Q/exec", {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbwc71GhyyeYwtER-p8vv10w0Y_zKDY1nFpsSpnSatTmopNjoWPRgUGn-lsZaBGdd9S-Rw/exec", {
           method: "POST",
           body: form
         });
