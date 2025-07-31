@@ -212,7 +212,7 @@
         form.append("usuario", usuarioAutenticado.nome);
         form.append("empresa", usuarioAutenticado.empresa);
 
-        const res = await fetch("URL_DO_SEU_SCRIPT", {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzLlZYwgThBTN8P24JFNeJ3JQCh8Fw38Dx2VmapJXLtnXTygivttsMB9CvrB1eMfpFS1Q/exec", {
           method: "POST",
           body: form
         });
