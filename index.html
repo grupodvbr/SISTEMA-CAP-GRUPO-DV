@@ -95,8 +95,10 @@
     <div class="menu">
       <select id="usuarioSelect" onchange="autenticarUsuario(this)">
         <option value="">👤 Login</option>
-        <option value="ADM">ADM</option>
-        <!-- Adicione mais usuários conforme necessário -->
+        <option value="MERCATTO">MERCATTO</option>
+        <option value="DELICIA">DELÍCIA GOURMET</option>
+        <option value="VILLA">VILLA GOURMET</option>
+        <option value="PADARIA">PADARIA DELÍCIA</option>
       </select>
       <select onchange="if(this.value) window.location.href=this.value">
         <option value="">📁 Navegar</option>
@@ -121,9 +123,29 @@
 
   <script>
     const usuarios = {
-      "ADM": { senha: "00", empresa: "MERCATTO" },
-      // Adicione mais usuários:
-      // "FIN": { senha: "123", empresa: "DELÍCIA GOURMET" }
+      "MERCATTO": { senha: "mercatto123", empresa: "MERCATTO" },
+      "DELICIA": { senha: "delicia123", empresa: "DELÍCIA GOURMET" },
+      "VILLA": { senha: "villa123", empresa: "VILLA GOURMET" },
+      "PADARIA": { senha: "padaria123", empresa: "PADARIA DELÍCIA" }
+    };
+
+    const eventosPorUsuario = {
+      "MERCATTO": [
+        { title: "Pagamento Fornecedor", start: "2025-08-05" },
+        { title: "Reunião de Planejamento", start: "2025-08-10" }
+      ],
+      "DELICIA": [
+        { title: "Vencimento da Luz", start: "2025-08-07" },
+        { title: "Relatório de Compras", start: "2025-08-12" }
+      ],
+      "VILLA": [
+        { title: "Entrega de Bebidas", start: "2025-08-08" },
+        { title: "Inventário Mensal", start: "2025-08-15" }
+      ],
+      "PADARIA": [
+        { title: "Pedido de Farinha", start: "2025-08-06" },
+        { title: "Fechamento de Caixa", start: "2025-08-13" }
+      ]
     };
 
     let usuarioAutenticado = null;
@@ -142,10 +164,34 @@
           empresa: dadosUsuario.empresa
         };
         select.options[select.selectedIndex].textContent = `${usuario} - ${dadosUsuario.empresa}`;
+        renderizarCalendario(); // carrega o calendário do usuário
       } else {
         alert("Senha incorreta!");
         select.value = "";
       }
+    }
+
+    function renderizarCalendario() {
+      const calendarEl = document.getElementById('calendar');
+      calendarEl.innerHTML = ""; // Limpa anterior
+
+      if (!usuarioAutenticado) return;
+
+      const eventos = eventosPorUsuario[usuarioAutenticado.nome] || [];
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        locale: 'pt-br',
+        height: 'auto',
+        events: eventos.map(ev => ({
+          title: ev.title,
+          start: ev.start,
+          allDay: true,
+          color: '#007bff'
+        }))
+      });
+
+      calendar.render();
     }
 
     document.getElementById('capForm').addEventListener('submit', async function(e) {
@@ -154,7 +200,7 @@
       const file = fileInput.files[0];
 
       if (!usuarioAutenticado || !file) {
-        alert("Preencha os campos e autentique-se para enviar o CAP.");
+        alert("Você precisa estar logado e escolher um arquivo para enviar.");
         return;
       }
 
@@ -178,29 +224,9 @@
       reader.readAsBinaryString(file);
     });
 
-    async function carregarEventos() {
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwh8g8_PBagwy8cvrVsymbdTNu4ZiFJ7_qwvGSaEL4l0KMYvhCNmo70f-jrkuVg67QeAg/exec?eventos=1");
-      const dados = await res.json();
-      return dados.map(ev => ({
-        title: `${ev.empresa}: ${ev.title}`, // Mostra a empresa no título
-        start: ev.start,
-        allDay: true,
-        color: '#007bff'
-      }));
-    }
-
-    document.addEventListener('DOMContentLoaded', async function() {
-      const calendarEl = document.getElementById('calendar');
-      const eventos = await carregarEventos();
-
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'pt-br',
-        height: 'auto',
-        events: eventos
-      });
-
-      calendar.render();
+    // O calendário só será exibido após o login
+    document.addEventListener('DOMContentLoaded', function() {
+      // Nada a fazer por enquanto
     });
   </script>
 
