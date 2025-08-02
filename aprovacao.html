@@ -2,15 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Visualização de CAPs</title>
+  <title>Visualização de CAPs - Grupo DV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: #f7f7f7;
-    }
-
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
     header {
       background-color: #003366;
       color: white;
@@ -18,50 +14,74 @@
       align-items: center;
       padding: 10px 20px;
     }
-
     header img {
       height: 40px;
       margin-right: 15px;
     }
-
     header h1 {
-      font-size: 1.4em;
+      font-size: 1.5em;
       margin: 0;
     }
-
     .container {
-      padding: 20px;
-      max-width: 95%;
+      max-width: 1400px;
       margin: auto;
+      padding: 20px;
     }
-
+    .botoes-massa {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .botoes-massa button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      color: white;
+      cursor: pointer;
+      margin: 0 10px;
+    }
+    .aprovar-todos { background-color: #28a745; }
+    .negar-todos { background-color: #dc3545; }
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 10px;
       background: white;
-      margin-top: 20px;
     }
-
     th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
+      border: 1px solid #ccc;
+      padding: 8px;
       text-align: left;
+      font-size: 14px;
     }
-
     th {
       background-color: #003366;
       color: white;
     }
-
-    tr:hover {
-      background-color: #f1f1f1;
+    .btn-status {
+      padding: 5px 8px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 0 2px;
     }
-
-    .loading {
-      text-align: center;
-      padding: 50px;
-      font-size: 18px;
-      color: #333;
+    .btn-aprovar { background-color: #28a745; color: white; }
+    .btn-negar { background-color: #dc3545; color: white; }
+    .btn-reverter { background-color: #6c757d; color: white; }
+    .resumo {
+      background: #f1f1f1;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      border-left: 5px solid #003366;
+    }
+    .resumo span {
+      display: inline-block;
+      margin-right: 20px;
+      font-weight: bold;
+    }
+    input[type="file"] {
+      padding: 10px;
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -72,46 +92,126 @@
   </header>
 
   <div class="container">
-    <div id="tabelaCAPs" class="loading">🔄 Carregando dados...</div>
+    <input type="file" id="inputExcel" accept=".xlsx" />
+    
+    <div class="botoes-massa">
+      <button class="aprovar-todos" onclick="alterarTodos('Aprovado')">✅ Aprovar Todos</button>
+      <button class="negar-todos" onclick="alterarTodos('Negado')">❌ Negar Todos</button>
+    </div>
+
+    <div id="painel"></div>
   </div>
 
   <script>
-    async function carregarCAPs() {
-      const url = "https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec";
-      try {
-        const res = await fetch(url);
-        const dados = await res.json();
+    let dadosPorEmpresa = {};
 
-        if (!Array.isArray(dados) || dados.length === 0) {
-          document.getElementById("tabelaCAPs").innerHTML = "Nenhum dado encontrado.";
-          return;
-        }
+    document.getElementById("inputExcel").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
 
-        const colunas = Object.keys(dados[0]).filter(c => c !== "_linha");
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-        let tabela = "<table><thead><tr>";
-        colunas.forEach(col => {
-          tabela += `<th>${col}</th>`;
-        });
-        tabela += "</tr></thead><tbody>";
+        const dados = json.map(l => ({
+          Empresa: l["Empresa"] || "",
+          Fornecedor: l["Cliente / Fornecedor"] || "",
+          Vencimento: l["Vencimento"] || "",
+          Valor: parseFloat(l["Valor Bruto"]) || 0,
+          Modalidade: l["Meio de Pagamento"] || "",
+          Historico: l["Histórico"] || "",
+          Enviado: l["Enviado Por"] || "",
+          Status: "PENDENTE"
+        })).filter(l => l.Empresa && l.Fornecedor);
 
+        dadosPorEmpresa = {};
         dados.forEach(item => {
-          tabela += "<tr>";
-          colunas.forEach(col => {
-            tabela += `<td>${item[col] || ""}</td>`;
-          });
-          tabela += "</tr>";
+          if (!dadosPorEmpresa[item.Empresa]) dadosPorEmpresa[item.Empresa] = [];
+          dadosPorEmpresa[item.Empresa].push(item);
         });
 
-        tabela += "</tbody></table>";
-        document.getElementById("tabelaCAPs").innerHTML = tabela;
-      } catch (error) {
-        console.error("Erro ao carregar CAPs:", error);
-        document.getElementById("tabelaCAPs").innerHTML = "Erro ao carregar os dados.";
+        renderizarPainel();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function renderizarPainel() {
+      const painel = document.getElementById("painel");
+      painel.innerHTML = "";
+
+      for (const empresa in dadosPorEmpresa) {
+        const registros = dadosPorEmpresa[empresa];
+
+        let html = `<h2>${empresa}</h2><div class="resumo">`;
+        let total = 0, pix = 0, boleto = 0, outros = 0;
+
+        registros.forEach(r => {
+          total += r.Valor;
+          const tipo = r.Modalidade.toLowerCase();
+          if (tipo.includes("pix")) pix += r.Valor;
+          else if (tipo.includes("boleto")) boleto += r.Valor;
+          else outros += r.Valor;
+        });
+
+        html += `
+          <span>💰 Total: R$ ${total.toFixed(2)}</span>
+          <span>📄 Boleto: R$ ${boleto.toFixed(2)}</span>
+          <span>🔁 PIX: R$ ${pix.toFixed(2)}</span>
+          <span>🏦 Outros: R$ ${outros.toFixed(2)}</span>
+        </div>`;
+
+        html += `
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente / Fornecedor</th>
+              <th>Vencimento</th>
+              <th>Valor Bruto</th>
+              <th>Meio de Pagamento</th>
+              <th>Histórico</th>
+              <th>Enviado Por</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>`;
+
+        registros.forEach((r, i) => {
+          html += `
+            <tr>
+              <td>${r.Fornecedor}</td>
+              <td>${r.Vencimento}</td>
+              <td>R$ ${r.Valor.toFixed(2)}</td>
+              <td>${r.Modalidade}</td>
+              <td>${r.Historico}</td>
+              <td>${r.Enviado}</td>
+              <td id="status-${empresa}-${i}">${r.Status}</td>
+              <td>
+                <button class="btn-status btn-aprovar" onclick="alterarStatus('${empresa}', ${i}, 'Aprovado')">✅</button>
+                <button class="btn-status btn-negar" onclick="alterarStatus('${empresa}', ${i}, 'Negado')">❌</button>
+                <button class="btn-status btn-reverter" onclick="alterarStatus('${empresa}', ${i}, 'PENDENTE')">↩️</button>
+              </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table><hr/>`;
+        painel.innerHTML += html;
       }
     }
 
-    window.onload = carregarCAPs;
+    function alterarStatus(empresa, index, novo) {
+      dadosPorEmpresa[empresa][index].Status = novo;
+      document.getElementById(`status-${empresa}-${index}`).innerText = novo;
+    }
+
+    function alterarTodos(novoStatus) {
+      for (const empresa in dadosPorEmpresa) {
+        dadosPorEmpresa[empresa].forEach((_, i) => alterarStatus(empresa, i, novoStatus));
+      }
+    }
   </script>
 </body>
 </html>
