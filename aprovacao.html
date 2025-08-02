@@ -2,167 +2,112 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Aprovação de CAPs</title>
+  <title>Visualização de CAPs</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; padding: 0; }
-    header { background: #004080; color: white; padding: 15px 20px; font-size: 20px; font-weight: bold; }
-    .container { padding: 20px; max-width: 1200px; margin: auto; }
-    .filtros { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-    select, button, input[type="date"] { padding: 10px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
-    .resumo { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
-    .box-resumo { background: #fff; border-left: 5px solid #004080; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    .box-resumo strong { font-size: 1.1em; display: block; margin-bottom: 5px; }
-    .tabela-cap { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-    .tabela-cap th, .tabela-cap td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    .tabela-cap th { background: #004080; color: white; }
-    .tabela-cap tr:hover { background-color: #f1f1f1; }
-    .btn-aprovar { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-    .btn-aprovar-massa { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f7f7f7;
+    }
+
+    header {
+      background-color: #003366;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+    }
+
+    header img {
+      height: 40px;
+      margin-right: 15px;
+    }
+
+    header h1 {
+      font-size: 1.4em;
+      margin: 0;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 95%;
+      margin: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #003366;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 50px;
+      font-size: 18px;
+      color: #333;
+    }
   </style>
 </head>
 <body>
-  <header>📋 Aprovação de CAPs</header>
+  <header>
+    <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" alt="Logo Grupo DV" />
+    <h1>Visualização de CAPs</h1>
+  </header>
+
   <div class="container">
-    <div class="filtros">
-      <label>Data início: <input type="date" id="dataInicio"></label>
-      <label>Data fim: <input type="date" id="dataFim"></label>
-      <select id="filtroEmpresa" onchange="filtrar()">
-        <option value="">Filtrar por Empresa</option>
-      </select>
-      <button class="btn-aprovar-massa" onclick="aprovarSelecionados()">✅ Aprovar Selecionados</button>
-    </div>
-    <div class="resumo" id="resumoEmpresas"></div>
-    <table class="tabela-cap">
-      <thead>
-        <tr id="cabecalho"></tr>
-      </thead>
-      <tbody id="corpoTabela"></tbody>
-    </table>
+    <div id="tabelaCAPs" class="loading">🔄 Carregando dados...</div>
   </div>
 
   <script>
-    let dadosCAP = [];
-    let empresas = new Set();
-
     async function carregarCAPs() {
-      const hoje = new Date();
-      const ontem = new Date(hoje);
-      ontem.setDate(hoje.getDate() - 1);
+      const url = "https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec";
+      try {
+        const res = await fetch(url);
+        const dados = await res.json();
 
-      document.getElementById("dataInicio").value = ontem.toISOString().slice(0, 10);
-      document.getElementById("dataFim").value = hoje.toISOString().slice(0, 10);
+        if (!Array.isArray(dados) || dados.length === 0) {
+          document.getElementById("tabelaCAPs").innerHTML = "Nenhum dado encontrado.";
+          return;
+        }
 
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec");
-      const resultado = await res.json();
-      dadosCAP = resultado.filter(item => item.Status !== "Aprovado");
-      montarTabela();
-    }
+        const colunas = Object.keys(dados[0]).filter(c => c !== "_linha");
 
-    function montarTabela() {
-      const corpo = document.getElementById("corpoTabela");
-      const cabecalho = document.getElementById("cabecalho");
-      corpo.innerHTML = "";
-      cabecalho.innerHTML = "<th><input type='checkbox' id='selectAll' onchange='selecionarTodos(this)'></th>";
-
-      const dataInicio = new Date(document.getElementById("dataInicio").value);
-      const dataFim = new Date(document.getElementById("dataFim").value);
-      dataFim.setHours(23, 59, 59, 999); // <- CORREÇÃO AQUI
-
-      const empresaSelecionada = document.getElementById("filtroEmpresa").value;
-
-      const filtrado = dadosCAP.filter(item => {
-        const data = new Date(item.Vencimento);
-        const dentroPeriodo = data >= dataInicio && data <= dataFim;
-        const mesmaEmpresa = !empresaSelecionada || item.Empresa === empresaSelecionada;
-        return dentroPeriodo && mesmaEmpresa;
-      });
-
-      const colunas = Object.keys(filtrado[0] || {}).filter(c => c !== "_linha");
-      colunas.forEach(col => cabecalho.innerHTML += `<th>${col}</th>`);
-      cabecalho.innerHTML += "<th>Status</th>";
-
-      corpo.innerHTML = "";
-      const resumo = {};
-
-      filtrado.forEach(linha => {
-        const empresa = linha.Empresa || "Outros";
-        empresas.add(empresa);
-
-        if (!resumo[empresa]) resumo[empresa] = { boleto: 0, pix: 0, total: 0 };
-
-        const valor = parseFloat(linha["Valor Bruto"].replace(',', '.')) || 0;
-        resumo[empresa].total += valor;
-        if (linha["Meio de Pagamento"].toLowerCase().includes("boleto")) resumo[empresa].boleto += valor;
-        else if (linha["Meio de Pagamento"].toLowerCase().includes("pix")) resumo[empresa].pix += valor;
-
-        let tr = `<tr><td><input type='checkbox' class='checkboxCAP' data-linha='${linha._linha}'></td>`;
+        let tabela = "<table><thead><tr>";
         colunas.forEach(col => {
-          let conteudo = linha[col] || "";
-          if (col === "Valor Bruto") conteudo = formatarValor(valor);
-          tr += `<td>${conteudo}</td>`;
+          tabela += `<th>${col}</th>`;
         });
-        tr += `<td><button class='btn-aprovar' onclick='aprovarLinha(${linha._linha}, this)'>✅ Aprovar</button></td></tr>`;
-        corpo.innerHTML += tr;
-      });
+        tabela += "</tr></thead><tbody>";
 
-      preencherFiltroEmpresas();
-      montarResumo(resumo);
-    }
-
-    function montarResumo(resumo) {
-      const divResumo = document.getElementById("resumoEmpresas");
-      divResumo.innerHTML = "";
-      for (const emp in resumo) {
-        divResumo.innerHTML += `
-          <div class="box-resumo">
-            <strong>${emp}</strong>
-            💸 Boletos: ${formatarValor(resumo[emp].boleto)}<br>
-            💰 PIX: ${formatarValor(resumo[emp].pix)}<br>
-            🏦 Conta Sicredi: <em>(aguardando integração)</em>
-          </div>
-        `;
-      }
-    }
-
-    function formatarValor(v) {
-      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    function preencherFiltroEmpresas() {
-      const filtro = document.getElementById("filtroEmpresa");
-      filtro.innerHTML = `<option value=''>Filtrar por Empresa</option>`;
-      empresas.forEach(emp => filtro.innerHTML += `<option value='${emp}'>${emp}</option>`);
-    }
-
-    function filtrar() {
-      montarTabela();
-    }
-
-    function selecionarTodos(checkbox) {
-      document.querySelectorAll(".checkboxCAP").forEach(cb => cb.checked = checkbox.checked);
-    }
-
-    async function aprovarLinha(linha, btn) {
-      btn.textContent = "⏳";
-      await fetch("https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linha, novoStatus: "Aprovado" })
-      });
-      btn.closest("tr").remove();
-    }
-
-    async function aprovarSelecionados() {
-      const selecionados = [...document.querySelectorAll(".checkboxCAP:checked")];
-      for (let checkbox of selecionados) {
-        const linha = checkbox.getAttribute("data-linha");
-        await fetch("https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ linha, novoStatus: "Aprovado" })
+        dados.forEach(item => {
+          tabela += "<tr>";
+          colunas.forEach(col => {
+            tabela += `<td>${item[col] || ""}</td>`;
+          });
+          tabela += "</tr>";
         });
-        checkbox.closest("tr").remove();
+
+        tabela += "</tbody></table>";
+        document.getElementById("tabelaCAPs").innerHTML = tabela;
+      } catch (error) {
+        console.error("Erro ao carregar CAPs:", error);
+        document.getElementById("tabelaCAPs").innerHTML = "Erro ao carregar os dados.";
       }
     }
 
