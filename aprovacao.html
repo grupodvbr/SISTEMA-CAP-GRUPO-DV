@@ -45,7 +45,7 @@
     let todosCAPs = [];
 
     async function carregarCAPs() {
-      const res = await fetch('https://script.google.com/macros/s/SEU_SCRIPT_ID/exec');
+      const res = await fetch('https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec');
       todosCAPs = await res.json();
       preencherTabela(todosCAPs);
       preencherFiltroEmpresas(todosCAPs);
@@ -96,7 +96,7 @@
     }
 
     async function atualizarStatus(linha, status) {
-      const res = await fetch('https://script.google.com/macros/s/SEU_SCRIPT_ID/exec', {
+      const res = await fetch('https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec', {
         method: 'POST',
         body: JSON.stringify({ linha, novoStatus: status }),
         headers: { 'Content-Type': 'application/json' }
