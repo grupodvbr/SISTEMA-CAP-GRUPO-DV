@@ -94,27 +94,39 @@
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet);
 
-        // Limpar dados e carregar apenas os válidos
+        // Normaliza chave: remove acento, espaços e força minúscula
+        const limparChave = (chave) =>
+          chave.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
         dadosLidos = json
-          .map(row => ({
-            Empresa: row["Empresa"] || "",
-            "Cliente / Fornecedor": row["Cliente / Fornecedor"] || "",
-            Vencimento: row["Vencimento"] || "",
-            "Valor Bruto": row["Valor Bruto"] || "",
-            "Meio de Pagamento": row["Meio de Pagamento"] || "",
-            "Tipo de Documento": row["Tipo de Documento"] || "",
-            Histórico: row["Histórico"] || ""
-          }))
-          .filter(linha => linha.Empresa && linha["Valor Bruto"]); // remove vazios
+          .map(row => {
+            const novaLinha = {};
+            for (const chave in row) {
+              const chaveLimpa = limparChave(chave);
+              novaLinha[chaveLimpa] = row[chave];
+            }
+            return {
+              Empresa: novaLinha["empresa"] || "",
+              "Cliente / Fornecedor": novaLinha["cliente / fornecedor"] || "",
+              Vencimento: novaLinha["vencimento"] || "",
+              "Valor Bruto": novaLinha["valor bruto"] || "",
+              "Meio de Pagamento": novaLinha["meio de pagamento"] || "",
+              "Tipo de Documento": novaLinha["tipo de documento"] || "",
+              Histórico: novaLinha["historico"] || ""
+            };
+          })
+          .filter(linha => linha.Empresa && linha["Valor Bruto"]);
 
         exibirTabela();
       };
+
       reader.readAsArrayBuffer(file);
     });
 
     function exibirTabela() {
+      const container = document.getElementById("previewTabela");
       if (dadosLidos.length === 0) {
-        document.getElementById("previewTabela").innerHTML = "<p>Nenhuma linha válida encontrada.</p>";
+        container.innerHTML = "<p>Nenhuma linha válida encontrada.</p>";
         return;
       }
 
@@ -134,7 +146,7 @@
       });
 
       tabela += "</tbody></table>";
-      document.getElementById("previewTabela").innerHTML = tabela;
+      container.innerHTML = tabela;
     }
 
     async function enviarDados() {
@@ -145,18 +157,22 @@
 
       const endpoint = "https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec";
 
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dados: dadosLidos })
-      });
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ dados: dadosLidos })
+        });
 
-      if (res.ok) {
-        alert("✅ Dados enviados com sucesso!");
-        dadosLidos = [];
-        document.getElementById("previewTabela").innerHTML = "";
-      } else {
-        alert("❌ Erro ao enviar os dados.");
+        if (res.ok) {
+          alert("✅ Dados enviados com sucesso!");
+          dadosLidos = [];
+          document.getElementById("previewTabela").innerHTML = "";
+        } else {
+          alert("❌ Erro ao enviar os dados.");
+        }
+      } catch (e) {
+        alert("❌ Falha na conexão com o servidor.");
       }
     }
   </script>
