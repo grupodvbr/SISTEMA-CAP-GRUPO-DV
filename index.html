@@ -4,18 +4,11 @@
   <meta charset="UTF-8" />
   <title>Sistema de CAP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- FullCalendar -->
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-    }
-
+    body { margin: 0; font-family: Arial, sans-serif; background: #f2f2f2; }
     nav {
       background-color: #007bff;
       color: white;
@@ -27,101 +20,53 @@
       top: 0;
       z-index: 1000;
     }
-
     .menu {
       display: flex;
       gap: 15px;
       align-items: center;
     }
-
     .menu select {
       padding: 8px;
       border-radius: 6px;
       border: none;
       font-size: 14px;
     }
-
     .container {
       max-width: 1200px;
       margin: auto;
       padding: 40px 20px;
     }
-
     #calendar {
       background: #fff;
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-
-    .upload-box {
+    .upload-box, .historico {
       background: #fff;
       padding: 20px;
       border-radius: 10px;
       margin-top: 40px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
     }
-
-    .upload-box label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-
+    .upload-box label { display: block; font-weight: bold; margin-bottom: 10px; }
     .upload-box input[type="file"] {
-      width: 100%;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-bottom: 15px;
+      width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px;
     }
-
     .upload-box button {
-      background: #007bff;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      width: 100%;
-      font-size: 16px;
+      background: #007bff; color: white; border: none; padding: 12px 20px;
+      border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px;
     }
-
-    .historico {
-      margin-top: 40px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
-    .historico h3 {
-      margin-top: 0;
-    }
-
-    .historico ul {
-      list-style: none;
-      padding-left: 0;
-    }
-
-    .historico li {
-      padding: 8px 0;
-      border-bottom: 1px solid #eee;
-    }
-
+    .historico h3 { margin-top: 0; }
+    .historico ul { list-style: none; padding-left: 0; }
+    .historico li { padding: 8px 0; border-bottom: 1px solid #eee; }
     .historico button {
-      margin-top: 10px;
-      background: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
+      margin-top: 10px; background: #dc3545; color: white; border: none;
+      padding: 8px 12px; border-radius: 6px; cursor: pointer;
     }
   </style>
 </head>
 <body>
-
   <nav>
     <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
     <div class="menu">
@@ -140,10 +85,8 @@
       </select>
     </div>
   </nav>
-
   <div class="container">
     <div id="calendar"></div>
-
     <div class="upload-box">
       <form id="capForm">
         <label for="arquivo">Upload de Planilha (Excel):</label>
@@ -151,14 +94,12 @@
         <button type="submit">Enviar CAP</button>
       </form>
     </div>
-
     <div class="historico">
       <h3>Histórico de Envios</h3>
       <ul id="listaHistorico"></ul>
       <button onclick="limparHistorico()">Limpar Histórico</button>
     </div>
   </div>
-
   <script>
     const usuarios = {
       "MERCATTO": { senha: "mercatto123", empresa: "MERCATTO" },
@@ -166,41 +107,15 @@
       "VILLA": { senha: "villa123", empresa: "VILLA GOURMET" },
       "PADARIA": { senha: "padaria123", empresa: "PADARIA DELÍCIA" }
     };
-
-    const eventosPorUsuario = {
-      "MERCATTO": [
-        { title: "Pagamento Fornecedor", start: "2025-08-05" },
-        { title: "Reunião de Planejamento", start: "2025-08-10" }
-      ],
-      "DELICIA": [
-        { title: "Vencimento da Luz", start: "2025-08-07" },
-        { title: "Relatório de Compras", start: "2025-08-12" }
-      ],
-      "VILLA": [
-        { title: "Entrega de Bebidas", start: "2025-08-08" },
-        { title: "Inventário Mensal", start: "2025-08-15" }
-      ],
-      "PADARIA": [
-        { title: "Pedido de Farinha", start: "2025-08-06" },
-        { title: "Fechamento de Caixa", start: "2025-08-13" }
-      ]
-    };
-
     let usuarioAutenticado = null;
-
     function autenticarUsuario(select) {
       const usuario = select.value;
       if (!usuario) return;
-
       const dadosUsuario = usuarios[usuario];
       const senhaDigitada = prompt(`Digite a senha para ${usuario}:`);
-
       if (senhaDigitada === dadosUsuario?.senha) {
         alert(`Bem-vindo(a), ${usuario} - ${dadosUsuario.empresa}!`);
-        usuarioAutenticado = {
-          nome: usuario,
-          empresa: dadosUsuario.empresa
-        };
+        usuarioAutenticado = { nome: usuario, empresa: dadosUsuario.empresa };
         select.options[select.selectedIndex].textContent = `${usuario} - ${dadosUsuario.empresa}`;
         renderizarCalendario();
         exibirHistorico();
@@ -209,70 +124,74 @@
         select.value = "";
       }
     }
-
     function renderizarCalendario() {
       const calendarEl = document.getElementById('calendar');
       calendarEl.innerHTML = "";
-      if (!usuarioAutenticado) return;
-
-      const eventos = eventosPorUsuario[usuarioAutenticado.nome] || [];
-
+      const eventosPorUsuario = {
+        "MERCATTO": [
+          { title: '📦 Entrega de Insumos', start: '2025-08-03', color: '#28a745' },
+          { title: '💼 Reunião de Custos', start: '2025-08-10', color: '#007bff' }
+        ],
+        "DELICIA": [
+          { title: '💡 Vencimento da Luz', start: '2025-08-07', color: '#ffc107' },
+          { title: '📊 Relatório Mensal', start: '2025-08-12', color: '#17a2b8' }
+        ],
+        "VILLA": [
+          { title: '🛒 Compra de Carnes', start: '2025-08-09', color: '#6f42c1' },
+          { title: '📦 Recebimento de Bebidas', start: '2025-08-14', color: '#28a745' }
+        ],
+        "PADARIA": [
+          { title: '🏦 Vencimento Fornecedores', start: '2025-08-05', color: '#dc3545' },
+          { title: '🍞 Entrega de Farinha', start: '2025-08-18', color: '#ffc107' }
+        ]
+      };
+      const eventosFicticios = eventosPorUsuario[usuarioAutenticado?.nome] || [];
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'pt-br',
         height: 'auto',
-        events: eventos.map(ev => ({
-          title: ev.title,
-          start: ev.start,
-          allDay: true,
-          color: '#007bff'
-        }))
+        events: eventosFicticios
       });
-
       calendar.render();
     }
-
     document.getElementById('capForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-      const fileInput = document.getElementById('arquivo');
-      const file = fileInput.files[0];
-
-      if (!usuarioAutenticado || !file) {
-        alert("Você precisa estar logado e escolher um arquivo para enviar.");
-        return;
-      }
-
+      const input = document.getElementById('arquivo');
+      const file = input.files[0];
+      if (!file || !usuarioAutenticado) return alert("Você precisa estar logado e selecionar uma planilha.");
       const reader = new FileReader();
-      reader.onload = async function() {
-        const base64 = btoa(reader.result);
-        const form = new FormData();
-        form.append("arquivo", base64);
-        form.append("usuario", usuarioAutenticado.nome);
-        form.append("empresa", usuarioAutenticado.empresa);
-
-        const res = await fetch("https://script.google.com/macros/s/AKfycbx4-xKpPyCJAtPngpEzrZt68YU7dO9J9hq8WRNG2n7q93KtJDFWF-LH2ik-S2KTY54KkA/exec", {
+      reader.onload = async function(event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+        const erros = [];
+        const itens = json.map((linha, i) => {
+          const empresa = linha["Empresas"] || "";
+          const cliente = linha["Plano de Contas"] || "";
+          const vencimento = linha["Unnamed: 2"] || linha["Vencimento"] || "";
+          const valor = linha["Unnamed: 30"] || linha["Valor Bruto"] || "";
+          const pagamento = linha["Unnamed: 20"] || linha["Meio de Pagamento"] || "";
+          const historico = linha["Unnamed: 21"] || linha["Histórico"] || "";
+          if (!(empresa && cliente && vencimento && valor && pagamento && historico)) {
+            erros.push(`Linha ${i + 2}`);
+          }
+          return { empresa, cliente, vencimento, valor, pagamento, historico, enviadoPor: usuarioAutenticado.empresa };
+        });
+        if (erros.length) return alert("Erros encontrados nas linhas:\n" + erros.join("\n"));
+        const res = await fetch("https://script.google.com/macros/s/SEU_SCRIPT_ID/exec", {
           method: "POST",
-          body: form
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ itens })
         });
-
         const resposta = await res.json();
-        alert(resposta.mensagem || "CAP enviado com sucesso!");
-        fileInput.value = '';
-
-        // Atualiza histórico local
-        const historico = JSON.parse(localStorage.getItem("historicoCAP") || "[]");
-        historico.push({
-          nome: file.name,
-          data: new Date().toLocaleString(),
-          empresa: usuarioAutenticado.empresa,
-          usuario: usuarioAutenticado.nome
-        });
-        localStorage.setItem("historicoCAP", JSON.stringify(historico));
+        if (resposta.status === "erro") alert("Ocorreram erros:\n" + resposta.erros.join("\n"));
+        else alert("CAP enviado com sucesso!");
+        input.value = "";
         exibirHistorico();
       };
-      reader.readAsBinaryString(file);
+      reader.readAsArrayBuffer(file);
     });
-
     function exibirHistorico() {
       const lista = document.getElementById("listaHistorico");
       lista.innerHTML = "";
@@ -283,7 +202,6 @@
         lista.appendChild(li);
       });
     }
-
     function limparHistorico() {
       if (confirm("Tem certeza que deseja limpar o histórico local de envios?")) {
         localStorage.removeItem("historicoCAP");
