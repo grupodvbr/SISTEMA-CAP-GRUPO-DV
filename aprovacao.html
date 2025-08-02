@@ -9,12 +9,34 @@
       font-family: Arial, sans-serif;
       background: #f8f8f8;
       margin: 0;
-      padding: 20px;
+      padding: 0;
     }
 
-    h1 {
+    header {
+      background-color: white;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid #ccc;
+    }
+
+    header img {
+      height: 50px;
+      margin-right: 20px;
+    }
+
+    header h1 {
+      margin: 0 auto;
+      font-size: 1.6em;
+      font-weight: bold;
       text-align: center;
-      color: #333;
+      flex: 1;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1200px;
+      margin: auto;
     }
 
     .filtros {
@@ -74,32 +96,37 @@
 </head>
 <body>
 
-  <h1>APROVAÇÃO DE CAP</h1>
+  <header>
+    <img src="https://static.wixstatic.com/media/d830b0_8cec50a98bbf4775814dbfa5386585e8~mv2.png" alt="Logo" />
+    <h1>APROVAÇÃO DE CAP</h1>
+  </header>
 
-  <div class="filtros">
-    <select id="empresaFiltro">
-      <option value="">Todas as Empresas</option>
-    </select>
-    <input type="date" id="dataFiltro" />
-    <button onclick="filtrar()">Filtrar</button>
+  <div class="container">
+    <div class="filtros">
+      <select id="empresaFiltro">
+        <option value="">Todas as Empresas</option>
+      </select>
+      <input type="date" id="dataFiltro" />
+      <button onclick="filtrar()">Filtrar</button>
+    </div>
+
+    <table id="tabelaCAPs">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Empresa</th>
+          <th>Valor Conta</th>
+          <th>Valor Pagar</th>
+          <th>Status</th>
+          <th>Arquivo</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Linhas preenchidas via JS -->
+      </tbody>
+    </table>
   </div>
-
-  <table id="tabelaCAPs">
-    <thead>
-      <tr>
-        <th>Data</th>
-        <th>Empresa</th>
-        <th>Valor Conta</th>
-        <th>Valor Pagar</th>
-        <th>Status</th>
-        <th>Arquivo</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Linhas preenchidas via JS -->
-    </tbody>
-  </table>
 
   <script>
     let dadosCAPs = [];
