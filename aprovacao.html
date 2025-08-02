@@ -15,13 +15,13 @@
     header h1 { font-size: 1.5em; margin: 0; }
 
     .container { max-width: 1400px; margin: auto; padding: 20px; }
-    .botoes-massa { text-align: center; margin: 20px 0; }
-    .botoes-massa button {
+    .botoes-massa, .filtros { text-align: center; margin: 20px 0; }
+    .botoes-massa button, .filtros select {
       padding: 10px 15px; border: none; border-radius: 6px;
-      font-weight: bold; color: white; cursor: pointer; margin: 0 10px;
+      font-weight: bold; margin: 0 10px;
     }
-    .aprovar-todos { background-color: #28a745; }
-    .negar-todos { background-color: #dc3545; }
+    .aprovar-todos { background-color: #28a745; color: white; }
+    .negar-todos { background-color: #dc3545; color: white; }
 
     table {
       width: 100%; border-collapse: collapse;
@@ -54,6 +54,22 @@
   </header>
 
   <div class="container">
+    <div class="filtros">
+      <select id="filtroStatus" onchange="renderizarPainel()">
+        <option value="">Status</option>
+        <option value="PENDENTE">PENDENTE</option>
+        <option value="Aprovado">Aprovado</option>
+        <option value="Negado">Negado</option>
+      </select>
+      <select id="filtroEmpresa" onchange="renderizarPainel()"></select>
+      <select id="filtroMeio" onchange="renderizarPainel()">
+        <option value="">Meio de Pagamento</option>
+        <option value="PIX">PIX</option>
+        <option value="Boleto">Boleto</option>
+        <option value="Outros">Outros</option>
+      </select>
+    </div>
+
     <div class="botoes-massa">
       <button class="aprovar-todos" onclick="alterarTodos('Aprovado')">✅ Aprovar Todos</button>
       <button class="negar-todos" onclick="alterarTodos('Negado')">❌ Negar Todos</button>
@@ -65,19 +81,15 @@
   <script>
     const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwx5kvWytrVxZa2nTogC0UH5rlF5RuEzzb_XPdCQfv9F7mZb84AZlFubxoRtGJqVK6F/exec";
     let dadosPorEmpresa = {};
+    let dadosOriginais = [];
 
     async function carregarDados() {
       try {
         const res = await fetch(URL_SCRIPT);
         const dados = await res.json();
-
-        dadosPorEmpresa = {};
-        dados.forEach(item => {
-          const empresa = item["Empresa"];
-          if (!dadosPorEmpresa[empresa]) dadosPorEmpresa[empresa] = [];
-          dadosPorEmpresa[empresa].push(item);
-        });
-
+        dadosOriginais = dados;
+        popularFiltroEmpresa();
+        agruparPorEmpresa();
         renderizarPainel();
       } catch (e) {
         alert("❌ Falha ao carregar dados da planilha.");
@@ -85,7 +97,41 @@
       }
     }
 
+    function popularFiltroEmpresa() {
+      const select = document.getElementById("filtroEmpresa");
+      select.innerHTML = '<option value="">Empresa</option>';
+      const empresas = [...new Set(dadosOriginais.map(d => d.Empresa))];
+      empresas.forEach(emp => {
+        const opt = document.createElement("option");
+        opt.value = emp;
+        opt.textContent = emp;
+        select.appendChild(opt);
+      });
+    }
+
+    function agruparPorEmpresa() {
+      dadosPorEmpresa = {};
+      let dados = dadosOriginais;
+
+      const status = document.getElementById("filtroStatus").value;
+      const empresa = document.getElementById("filtroEmpresa").value;
+      const meio = document.getElementById("filtroMeio").value;
+
+      dados = dados.filter(d => {
+        return (!status || d.Status === status) &&
+               (!empresa || d.Empresa === empresa) &&
+               (!meio || (d["Meio de Pagamento"] || '').toLowerCase().includes(meio.toLowerCase()));
+      });
+
+      dados.forEach(item => {
+        const empresa = item.Empresa;
+        if (!dadosPorEmpresa[empresa]) dadosPorEmpresa[empresa] = [];
+        dadosPorEmpresa[empresa].push(item);
+      });
+    }
+
     function renderizarPainel() {
+      agruparPorEmpresa();
       const painel = document.getElementById("painel");
       painel.innerHTML = "";
 
@@ -150,12 +196,11 @@
 
     async function atualizarStatus(empresa, index, novo) {
       const registro = dadosPorEmpresa[empresa][index];
-      const linha = registro["__linha"]; // você pode colocar isso no Apps Script
-
+      const linha = registro["_linha"] || registro["__linha"];
       try {
         await fetch(URL_SCRIPT, {
           method: "POST",
-          body: JSON.stringify({ linha, status: novo }),
+          body: JSON.stringify({ _linha: linha, Status: novo }),
           headers: { "Content-Type": "application/json" },
         });
         document.getElementById(`status-${empresa}-${index}`).innerText = novo;
