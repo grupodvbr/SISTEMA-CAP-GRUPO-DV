@@ -64,6 +64,20 @@
       margin-top: 10px; background: #dc3545; color: white; border: none;
       padding: 8px 12px; border-radius: 6px; cursor: pointer;
     }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 9999;
+      color: white;
+      font-size: 22px;
+      text-align: center;
+      padding-top: 20%;
+    }
   </style>
 </head>
 <body>
@@ -85,6 +99,9 @@
       </select>
     </div>
   </nav>
+
+  <div id="overlay">⏳ Processando, aguarde...</div>
+
   <div class="container">
     <div id="calendar"></div>
     <div class="upload-box">
@@ -154,20 +171,17 @@
       });
       calendar.render();
     }
-    document.getElementById('capForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const input = document.getElementById('arquivo');
-      const file = input.files[0];
-      if (!file || !usuarioAutenticado) return alert("Você precisa estar logado e selecionar uma planilha.");
+    async function processarUpload(file, usuarioAutenticado) {
+      document.getElementById('overlay').style.display = 'block';
       const reader = new FileReader();
       reader.onload = async function(event) {
         const data = new Uint8Array(event.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-       const jsonCompleto = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
-const dados = jsonCompleto.slice(10); // ignora as 10 primeiras linhas
-const cabecalhos = jsonCompleto[10]; // linha 11 como cabeçalho
-const json = XLSX.utils.sheet_to_json([cabecalhos, ...dados], { defval: "" });
+        const jsonCompleto = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
+        const dados = jsonCompleto.slice(10);
+        const cabecalhos = jsonCompleto[10];
+        const json = XLSX.utils.sheet_to_json([cabecalhos, ...dados], { defval: "" });
 
         const erros = [];
         const itens = json.map((linha, i) => {
@@ -182,20 +196,38 @@ const json = XLSX.utils.sheet_to_json([cabecalhos, ...dados], { defval: "" });
           }
           return { empresa, cliente, vencimento, valor, pagamento, historico, enviadoPor: usuarioAutenticado.empresa };
         });
-        if (erros.length) return alert("Erros encontrados nas linhas:\n" + erros.join("\n"));
+
+        if (erros.length) {
+          document.getElementById('overlay').style.display = 'none';
+          return alert("Erros encontrados nas linhas:\n" + erros.join("\n"));
+        }
+
         const res = await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ itens })
         });
+
         const resposta = await res.json();
+        document.getElementById('overlay').style.display = 'none';
+
         if (resposta.status === "erro") alert("Ocorreram erros:\n" + resposta.erros.join("\n"));
         else alert("CAP enviado com sucesso!");
-        input.value = "";
+
+        document.getElementById('arquivo').value = "";
         exibirHistorico();
       };
       reader.readAsArrayBuffer(file);
+    }
+
+    document.getElementById('capForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const input = document.getElementById('arquivo');
+      const file = input.files[0];
+      if (!file || !usuarioAutenticado) return alert("Você precisa estar logado e selecionar uma planilha.");
+      await processarUpload(file, usuarioAutenticado);
     });
+
     function exibirHistorico() {
       const lista = document.getElementById("listaHistorico");
       lista.innerHTML = "";
