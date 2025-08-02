@@ -92,7 +92,9 @@
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet);
+
+        // ⚠️ Corrigido: leitura a partir da linha 11 (índice 10)
+        const json = XLSX.utils.sheet_to_json(sheet, { range: 10 });
 
         // Normaliza chave: remove acento, espaços e força minúscula
         const limparChave = (chave) =>
