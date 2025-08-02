@@ -1,120 +1,122 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
   <title>Aprovação de CAPs</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
-    h1 { text-align: center; }
-    select, button { padding: 8px; margin: 10px 5px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
-    th { background: #007bff; color: white; }
-    tr:nth-child(even) { background: #f9f9f9; }
-    .status-btn { padding: 6px 10px; margin: 2px; cursor: pointer; border: none; border-radius: 4px; }
-    .aprovado { background: #28a745; color: white; }
-    .reprovado { background: #dc3545; color: white; }
-    .pendente { background: #ffc107; color: black; }
+    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; padding: 0; }
+    header { background: #004080; color: white; padding: 15px 20px; font-size: 20px; font-weight: bold; }
+    .container { padding: 20px; max-width: 1200px; margin: auto; }
+    .filtros { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+    select, button { padding: 10px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
+    .tabela-cap { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    .tabela-cap th, .tabela-cap td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    .tabela-cap th { background: #004080; color: white; }
+    .tabela-cap tr:hover { background-color: #f1f1f1; }
+    .btn-aprovar { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    .btn-aprovar-massa { margin-top: 10px; background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <h1>✅ Aprovação de CAPs</h1>
-  <label for="filtroEmpresa">Filtrar por Empresa:</label>
-  <select id="filtroEmpresa" onchange="filtrarEmpresa()">
-    <option value="">Todas</option>
-  </select>
-  <button onclick="aprovarSelecionados()">✅ Aprovar Selecionados</button>
-
-  <table id="tabelaCAPs">
-    <thead>
-      <tr>
-        <th><input type="checkbox" id="marcarTodos" onclick="toggleTodos()"></th>
-        <th>Empresa</th>
-        <th>Cliente</th>
-        <th>Vencimento</th>
-        <th>Valor</th>
-        <th>Status</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <header>📋 Aprovação de CAPs</header>
+  <div class="container">
+    <div class="filtros">
+      <select id="filtroEmpresa" onchange="filtrar()">
+        <option value="">Filtrar por Empresa</option>
+      </select>
+      <button class="btn-aprovar-massa" onclick="aprovarSelecionados()">✅ Aprovar Selecionados</button>
+    </div>
+    <table class="tabela-cap">
+      <thead>
+        <tr id="cabecalho"></tr>
+      </thead>
+      <tbody id="corpoTabela"></tbody>
+    </table>
+  </div>
 
   <script>
-    let todosCAPs = [];
+    let dadosCAP = [];
+    let empresas = new Set();
 
     async function carregarCAPs() {
-      const res = await fetch('https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec');
-      todosCAPs = await res.json();
-      preencherTabela(todosCAPs);
-      preencherFiltroEmpresas(todosCAPs);
+      const res = await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec");
+      const resultado = await res.json();
+      dadosCAP = resultado.filter(item => item.Status !== "Aprovado");
+      montarTabela();
     }
 
-    function preencherTabela(dados) {
-      const tbody = document.querySelector('#tabelaCAPs tbody');
-      tbody.innerHTML = '';
-      dados.forEach((item, i) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><input type="checkbox" class="chk" data-linha="${item._linha}"></td>
-          <td>${item["Empresa"] || ''}</td>
-          <td>${item["Cliente / Fornecedor"] || ''}</td>
-          <td>${item["Vencimento"] || ''}</td>
-          <td>R$ ${parseFloat(item["Valor Bruto"] || 0).toFixed(2)}</td>
-          <td>${item["Status"] || 'PENDENTE'}</td>
-          <td>
-            <button class="status-btn aprovado" onclick="atualizarStatus(${item._linha}, 'APROVADO')">Aprovar</button>
-            <button class="status-btn reprovado" onclick="atualizarStatus(${item._linha}, 'REPROVADO')">Reprovar</button>
-            <button class="status-btn pendente" onclick="atualizarStatus(${item._linha}, 'PENDENTE')">Pendente</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
+    function montarTabela() {
+      const corpo = document.getElementById("corpoTabela");
+      const cabecalho = document.getElementById("cabecalho");
+      corpo.innerHTML = "";
+      cabecalho.innerHTML = "<th><input type='checkbox' id='selectAll' onchange='selecionarTodos(this)'></th>";
+
+      if (dadosCAP.length === 0) return;
+
+      const colunas = Object.keys(dadosCAP[0]).filter(c => c !== "_linha");
+      colunas.forEach(col => cabecalho.innerHTML += `<th>${col}</th>`);
+      cabecalho.innerHTML += "<th>Status</th>";
+
+      dadosCAP.forEach((linha, i) => {
+        empresas.add(linha.empresa);
+        let tr = `<tr><td><input type='checkbox' class='checkboxCAP' data-linha='${linha._linha}'></td>`;
+        colunas.forEach(col => tr += `<td>${linha[col] || ""}</td>`);
+        tr += `<td><button class='btn-aprovar' onclick='aprovarLinha(${linha._linha}, this)'>✅ Aprovar</button></td></tr>`;
+        corpo.innerHTML += tr;
+      });
+
+      preencherFiltroEmpresas();
+    }
+
+    function preencherFiltroEmpresas() {
+      const filtro = document.getElementById("filtroEmpresa");
+      filtro.innerHTML = `<option value=''>Filtrar por Empresa</option>`;
+      empresas.forEach(emp => filtro.innerHTML += `<option value='${emp}'>${emp}</option>`);
+    }
+
+    function filtrar() {
+      const empresa = document.getElementById("filtroEmpresa").value;
+      if (!empresa) return montarTabela();
+      const filtrado = dadosCAP.filter(l => l.empresa === empresa);
+      const corpo = document.getElementById("corpoTabela");
+      corpo.innerHTML = "";
+      filtrado.forEach(linha => {
+        let tr = `<tr><td><input type='checkbox' class='checkboxCAP' data-linha='${linha._linha}'></td>`;
+        Object.keys(linha).filter(c => c !== "_linha").forEach(col => tr += `<td>${linha[col] || ""}</td>`);
+        tr += `<td><button class='btn-aprovar' onclick='aprovarLinha(${linha._linha}, this)'>✅ Aprovar</button></td></tr>`;
+        corpo.innerHTML += tr;
       });
     }
 
-    function preencherFiltroEmpresas(dados) {
-      const select = document.getElementById('filtroEmpresa');
-      const empresas = [...new Set(dados.map(d => d["Empresa"]))];
-      empresas.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp;
-        opt.textContent = emp;
-        select.appendChild(opt);
+    function selecionarTodos(checkbox) {
+      document.querySelectorAll(".checkboxCAP").forEach(cb => cb.checked = checkbox.checked);
+    }
+
+    async function aprovarLinha(linha, btn) {
+      btn.textContent = "⏳";
+      await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linha, novoStatus: "Aprovado" })
       });
+      btn.closest("tr").remove();
     }
 
-    function filtrarEmpresa() {
-      const empresa = document.getElementById('filtroEmpresa').value;
-      const filtrados = empresa ? todosCAPs.filter(c => c["Empresa"] === empresa) : todosCAPs;
-      preencherTabela(filtrados);
+    async function aprovarSelecionados() {
+      const selecionados = [...document.querySelectorAll(".checkboxCAP:checked")];
+      for (let checkbox of selecionados) {
+        const linha = checkbox.getAttribute("data-linha");
+        await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ linha, novoStatus: "Aprovado" })
+        });
+        checkbox.closest("tr").remove();
+      }
     }
 
-    function toggleTodos() {
-      const marcar = document.getElementById('marcarTodos').checked;
-      document.querySelectorAll('.chk').forEach(chk => chk.checked = marcar);
-    }
-
-    async function atualizarStatus(linha, status) {
-      const res = await fetch('https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec', {
-        method: 'POST',
-        body: JSON.stringify({ linha, novoStatus: status }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const r = await res.json();
-      if (r.status === 'sucesso') carregarCAPs();
-    }
-
-    function aprovarSelecionados() {
-      const selecionados = document.querySelectorAll('.chk:checked');
-      if (!selecionados.length) return alert("Selecione pelo menos um título para aprovar.");
-      selecionados.forEach(async chk => {
-        const linha = chk.getAttribute('data-linha');
-        await atualizarStatus(linha, 'APROVADO');
-      });
-    }
-
-    carregarCAPs();
+    window.onload = carregarCAPs;
   </script>
 </body>
 </html>
