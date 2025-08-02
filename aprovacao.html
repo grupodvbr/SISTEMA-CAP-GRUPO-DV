@@ -48,9 +48,15 @@
     async function carregarCAPs() {
       const hoje = new Date();
       const ontem = new Date();
-      ontem.setDate(hoje.getDate() - 1);
-      document.getElementById("dataInicio").value = ontem.toISOString().slice(0,10);
-      document.getElementById("dataFim").value = hoje.toISOString().slice(0,10);
+
+      if (hoje.getDate() === 1) {
+        ontem.setDate(0); // último dia do mês anterior
+      } else {
+        ontem.setDate(hoje.getDate() - 1);
+      }
+
+      document.getElementById("dataInicio").value = ontem.toISOString().slice(0, 10);
+      document.getElementById("dataFim").value = hoje.toISOString().slice(0, 10);
 
       const res = await fetch("https://script.google.com/macros/s/AKfycbzVgnY1_8asx9ZldPmqhwsP5VZCbOHROlrgwJ-3LdEGnWz22t2dol6kmwXEB7L0aKsa/exec");
       const resultado = await res.json();
@@ -66,10 +72,13 @@
 
       const dataInicio = new Date(document.getElementById("dataInicio").value);
       const dataFim = new Date(document.getElementById("dataFim").value);
+      const empresaSelecionada = document.getElementById("filtroEmpresa").value;
 
       const filtrado = dadosCAP.filter(item => {
         const data = new Date(item.Vencimento);
-        return data >= dataInicio && data <= dataFim;
+        const dentroPeriodo = data >= dataInicio && data <= dataFim;
+        const mesmaEmpresa = !empresaSelecionada || item.Empresa === empresaSelecionada;
+        return dentroPeriodo && mesmaEmpresa;
       });
 
       const colunas = Object.keys(filtrado[0] || {}).filter(c => c !== "_linha");
