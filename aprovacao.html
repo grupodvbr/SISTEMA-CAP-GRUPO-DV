@@ -1,168 +1,81 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Aprovação de CAPs</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f8f8f8;
-      margin: 0;
-      padding: 0;
-    }
-
-    header {
-      background-color: white;
-      padding: 10px 20px;
-      display: flex;
-      align-items: center;
-      border-bottom: 1px solid #ccc;
-    }
-
-    header img {
-      height: 50px;
-      margin-right: 20px;
-    }
-
-    header h1 {
-      margin: 0 auto;
-      font-size: 1.6em;
-      font-weight: bold;
-      text-align: center;
-      flex: 1;
-    }
-
-    .container {
-      padding: 20px;
-      max-width: 1200px;
-      margin: auto;
-    }
-
-    .filtros {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    select, input[type="date"] {
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    th, td {
-      padding: 10px;
-      text-align: center;
-      border: 1px solid #ddd;
-    }
-
-    th {
-      background-color: #007bff;
-      color: white;
-    }
-
-    .btn {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      color: white;
-      font-weight: bold;
-    }
-
-    .aprovado {
-      background: #28a745;
-    }
-
-    .reprovado {
-      background: #dc3545;
-    }
-
-    a {
-      color: #007bff;
-      text-decoration: none;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+    h1 { text-align: center; }
+    select, button { padding: 8px; margin: 10px 5px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    th { background: #007bff; color: white; }
+    tr:nth-child(even) { background: #f9f9f9; }
+    .status-btn { padding: 6px 10px; margin: 2px; cursor: pointer; border: none; border-radius: 4px; }
+    .aprovado { background: #28a745; color: white; }
+    .reprovado { background: #dc3545; color: white; }
+    .pendente { background: #ffc107; color: black; }
   </style>
 </head>
 <body>
+  <h1>✅ Aprovação de CAPs</h1>
+  <label for="filtroEmpresa">Filtrar por Empresa:</label>
+  <select id="filtroEmpresa" onchange="filtrarEmpresa()">
+    <option value="">Todas</option>
+  </select>
+  <button onclick="aprovarSelecionados()">✅ Aprovar Selecionados</button>
 
-  <header>
-    <img src="https://static.wixstatic.com/media/d830b0_8cec50a98bbf4775814dbfa5386585e8~mv2.png" alt="Logo" />
-    <h1>APROVAÇÃO DE CAP</h1>
-  </header>
-
-  <div class="container">
-    <div class="filtros">
-      <select id="empresaFiltro">
-        <option value="">Todas as Empresas</option>
-      </select>
-      <input type="date" id="dataFiltro" />
-      <button onclick="filtrar()">Filtrar</button>
-    </div>
-
-    <table id="tabelaCAPs">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Empresa</th>
-          <th>Valor Conta</th>
-          <th>Valor Pagar</th>
-          <th>Status</th>
-          <th>Arquivo</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Linhas preenchidas via JS -->
-      </tbody>
-    </table>
-  </div>
+  <table id="tabelaCAPs">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="marcarTodos" onclick="toggleTodos()"></th>
+        <th>Empresa</th>
+        <th>Cliente</th>
+        <th>Vencimento</th>
+        <th>Valor</th>
+        <th>Status</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <script>
-    let dadosCAPs = [];
+    let todosCAPs = [];
 
     async function carregarCAPs() {
-      const res = await fetch('URL_DO_SEU_SCRIPT?consulta=1');
-      dadosCAPs = await res.json();
-      preencherTabela(dadosCAPs);
-      preencherFiltroEmpresa();
+      const res = await fetch('https://script.google.com/macros/s/SEU_SCRIPT_ID/exec');
+      todosCAPs = await res.json();
+      preencherTabela(todosCAPs);
+      preencherFiltroEmpresas(todosCAPs);
     }
 
-    function preencherTabela(lista) {
+    function preencherTabela(dados) {
       const tbody = document.querySelector('#tabelaCAPs tbody');
       tbody.innerHTML = '';
-
-      lista.forEach((cap, index) => {
+      dados.forEach((item, i) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${cap.data}</td>
-          <td>${cap.empresa}</td>
-          <td>R$ ${parseFloat(cap.valorConta).toFixed(2)}</td>
-          <td>R$ ${parseFloat(cap.valorPagar).toFixed(2)}</td>
-          <td>${cap.status}</td>
-          <td><a href="${cap.arquivo}" target="_blank">Ver</a></td>
+          <td><input type="checkbox" class="chk" data-linha="${item._linha}"></td>
+          <td>${item["Empresa"] || ''}</td>
+          <td>${item["Cliente / Fornecedor"] || ''}</td>
+          <td>${item["Vencimento"] || ''}</td>
+          <td>R$ ${parseFloat(item["Valor Bruto"] || 0).toFixed(2)}</td>
+          <td>${item["Status"] || 'PENDENTE'}</td>
           <td>
-            <button class="btn aprovado" onclick="atualizarStatus(${index}, 'APROVADO')">Aprovar</button>
-            <button class="btn reprovado" onclick="atualizarStatus(${index}, 'REPROVADO')">Reprovar</button>
+            <button class="status-btn aprovado" onclick="atualizarStatus(${item._linha}, 'APROVADO')">Aprovar</button>
+            <button class="status-btn reprovado" onclick="atualizarStatus(${item._linha}, 'REPROVADO')">Reprovar</button>
+            <button class="status-btn pendente" onclick="atualizarStatus(${item._linha}, 'PENDENTE')">Pendente</button>
           </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    function preencherFiltroEmpresa() {
-      const select = document.getElementById('empresaFiltro');
-      const empresas = [...new Set(dadosCAPs.map(cap => cap.empresa))];
+    function preencherFiltroEmpresas(dados) {
+      const select = document.getElementById('filtroEmpresa');
+      const empresas = [...new Set(dados.map(d => d["Empresa"]))];
       empresas.forEach(emp => {
         const opt = document.createElement('option');
         opt.value = emp;
@@ -171,37 +84,37 @@
       });
     }
 
-    function filtrar() {
-      const empresa = document.getElementById('empresaFiltro').value;
-      const data = document.getElementById('dataFiltro').value;
-      const listaFiltrada = dadosCAPs.filter(cap => {
-        return (!empresa || cap.empresa === empresa) &&
-               (!data || cap.data.split('/').reverse().join('-') === data);
-      });
-      preencherTabela(listaFiltrada);
+    function filtrarEmpresa() {
+      const empresa = document.getElementById('filtroEmpresa').value;
+      const filtrados = empresa ? todosCAPs.filter(c => c["Empresa"] === empresa) : todosCAPs;
+      preencherTabela(filtrados);
     }
 
-    async function atualizarStatus(index, novoStatus) {
-      const cap = dadosCAPs[index];
-      const response = await fetch('URL_DO_SEU_SCRIPT', {
+    function toggleTodos() {
+      const marcar = document.getElementById('marcarTodos').checked;
+      document.querySelectorAll('.chk').forEach(chk => chk.checked = marcar);
+    }
+
+    async function atualizarStatus(linha, status) {
+      const res = await fetch('https://script.google.com/macros/s/SEU_SCRIPT_ID/exec', {
         method: 'POST',
-        body: JSON.stringify({
-          acao: 'atualizarStatus',
-          data: cap.data,
-          empresa: cap.empresa,
-          status: novoStatus
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: JSON.stringify({ linha, novoStatus: status }),
+        headers: { 'Content-Type': 'application/json' }
       });
-      const res = await response.json();
-      alert(res.mensagem || 'Status atualizado!');
-      carregarCAPs();
+      const r = await res.json();
+      if (r.status === 'sucesso') carregarCAPs();
+    }
+
+    function aprovarSelecionados() {
+      const selecionados = document.querySelectorAll('.chk:checked');
+      if (!selecionados.length) return alert("Selecione pelo menos um título para aprovar.");
+      selecionados.forEach(async chk => {
+        const linha = chk.getAttribute('data-linha');
+        await atualizarStatus(linha, 'APROVADO');
+      });
     }
 
     carregarCAPs();
   </script>
-
 </body>
 </html>
