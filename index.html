@@ -93,35 +93,28 @@
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-        // ⚠️ Corrigido: leitura a partir da linha 11 (índice 10)
-        const json = XLSX.utils.sheet_to_json(sheet, { range: 10 });
+        // Lê os dados a partir da linha 11 (range: 10), header como array
+        const raw = XLSX.utils.sheet_to_json(sheet, { range: 10, header: 1 });
 
-        // Normaliza chave: remove acento, espaços e força minúscula
-        const limparChave = (chave) =>
-          chave.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-
-        dadosLidos = json
-          .map(row => {
-            const novaLinha = {};
-            for (const chave in row) {
-              const chaveLimpa = limparChave(chave);
-              novaLinha[chaveLimpa] = row[chave];
-            }
-            return {
-              Empresa: novaLinha["empresa"] || "",
-              "Cliente / Fornecedor": novaLinha["cliente / fornecedor"] || "",
-              Vencimento: novaLinha["vencimento"] || "",
-              "Valor Bruto": novaLinha["valor bruto"] || "",
-              "Meio de Pagamento": novaLinha["meio de pagamento"] || "",
-              "Tipo de Documento": novaLinha["tipo de documento"] || "",
-              Histórico: novaLinha["historico"] || ""
-            };
-          })
-          .filter(linha => linha.Empresa && linha["Valor Bruto"]);
+        dadosLidos = raw
+          .filter(l => l.length > 0 && l[3]) // ignora vazios e sem empresa
+          .map(l => ({
+            Tipo: l[0] || "",
+            Numero: l[1] || "",
+            Parcela: l[2] || "",
+            Empresa: l[3] || "",
+            "Cliente / Fornecedor": l[4] || "",
+            Emissao: l[5] || "",
+            Vencimento: l[6] || "",
+            Liquidacao: l[7] || "",
+            "Valor Bruto": typeof l[8] === "string" ? parseFloat(l[8].replace("R$", "").replace(".", "").replace(",", ".")) : l[8],
+            Competencia: l[9] || "",
+            "Plano de Contas": l[10] || "",
+            "Centro de Custos": l[11] || ""
+          }));
 
         exibirTabela();
       };
-
       reader.readAsArrayBuffer(file);
     });
 
