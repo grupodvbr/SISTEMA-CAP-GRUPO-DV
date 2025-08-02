@@ -7,6 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; }
+
     header {
       background-color: #003366;
       color: white;
@@ -14,10 +15,15 @@
       align-items: center;
       padding: 10px 20px;
     }
+
     header img { height: 40px; margin-right: 15px; }
     header h1 { font-size: 1.4em; margin: 0; }
 
-    .container { padding: 20px; max-width: 1200px; margin: auto; }
+    .container {
+      padding: 20px;
+      width: 100%;
+      box-sizing: border-box;
+    }
 
     .import-box {
       background: white;
@@ -42,6 +48,7 @@
       border: 1px solid #ddd;
       padding: 8px;
       text-align: left;
+      font-size: 14px;
     }
 
     th {
@@ -61,6 +68,11 @@
       margin-top: 20px;
       cursor: pointer;
       border-radius: 5px;
+      font-weight: bold;
+    }
+
+    #previewTabela {
+      overflow-x: auto;
     }
   </style>
 </head>
@@ -92,12 +104,10 @@
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-        // Lê os dados a partir da linha 11 (range: 10), header como array
         const raw = XLSX.utils.sheet_to_json(sheet, { range: 10, header: 1 });
 
         dadosLidos = raw
-          .filter(l => l.length > 0 && l[3]) // ignora vazios e sem empresa
+          .filter(l => l.length > 0 && l[3]) // Ignora linhas sem empresa
           .map(l => ({
             Tipo: l[0] || "",
             Numero: l[1] || "",
@@ -107,7 +117,7 @@
             Emissao: l[5] || "",
             Vencimento: l[6] || "",
             Liquidacao: l[7] || "",
-            "Valor Bruto": typeof l[8] === "string" ? parseFloat(l[8].replace("R$", "").replace(".", "").replace(",", ".")) : l[8],
+            "Valor Bruto": formatarValor(l[8]),
             Competencia: l[9] || "",
             "Plano de Contas": l[10] || "",
             "Centro de Custos": l[11] || ""
@@ -118,25 +128,28 @@
       reader.readAsArrayBuffer(file);
     });
 
+    function formatarValor(valor) {
+      if (typeof valor === "string") {
+        return parseFloat(valor.replace(/[^\d,-]/g, '').replace(',', '.')) || 0;
+      }
+      return parseFloat(valor) || 0;
+    }
+
     function exibirTabela() {
       const container = document.getElementById("previewTabela");
       if (dadosLidos.length === 0) {
-        container.innerHTML = "<p>Nenhuma linha válida encontrada.</p>";
+        container.innerHTML = "<p style='margin-top:20px;color:#a00;'>Nenhuma linha válida encontrada no arquivo.</p>";
         return;
       }
 
       let tabela = "<table><thead><tr>";
       const colunas = Object.keys(dadosLidos[0]);
-      colunas.forEach(col => {
-        tabela += `<th>${col}</th>`;
-      });
+      colunas.forEach(col => tabela += `<th>${col}</th>`);
       tabela += "</tr></thead><tbody>";
 
       dadosLidos.forEach(row => {
         tabela += "<tr>";
-        colunas.forEach(col => {
-          tabela += `<td>${row[col]}</td>`;
-        });
+        colunas.forEach(col => tabela += `<td>${row[col]}</td>`);
         tabela += "</tr>";
       });
 
