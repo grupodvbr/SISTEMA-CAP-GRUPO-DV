@@ -62,12 +62,6 @@
         <option value="Negado">Negado</option>
       </select>
       <select id="filtroEmpresa" onchange="renderizarPainel()"></select>
-      <select id="filtroMeio" onchange="renderizarPainel()">
-        <option value="">Meio de Pagamento</option>
-        <option value="PIX">PIX</option>
-        <option value="Boleto">Boleto</option>
-        <option value="Outros">Outros</option>
-      </select>
     </div>
 
     <div class="botoes-massa">
@@ -79,7 +73,7 @@
   </div>
 
   <script>
-    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwx5kvWytrVxZa2nTogC0UH5rlF5RuEzzb_XPdCQfv9F7mZb84AZlFubxoRtGJqVK6F/exec";
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbxdXI6n1pPV_BrVeTiatn5G74X_qvY-tN0EAsG5TMUHT8P80oLtSB01ojqewQWKcOTIoA/exec";
     let dadosPorEmpresa = {};
     let dadosOriginais = [];
 
@@ -115,12 +109,10 @@
 
       const status = document.getElementById("filtroStatus").value;
       const empresa = document.getElementById("filtroEmpresa").value;
-      const meio = document.getElementById("filtroMeio").value;
 
       dados = dados.filter(d => {
         return (!status || d.Status === status) &&
-               (!empresa || d.Empresa === empresa) &&
-               (!meio || (d["Meio de Pagamento"] || '').toLowerCase().includes(meio.toLowerCase()));
+               (!empresa || d.Empresa === empresa);
       });
 
       dados.forEach(item => {
@@ -138,34 +130,27 @@
       for (const empresa in dadosPorEmpresa) {
         const registros = dadosPorEmpresa[empresa];
 
-        let html = `<h2>${empresa}</h2><div class="resumo">`;
-        let total = 0, pix = 0, boleto = 0, outros = 0;
+        let total = 0;
+        registros.forEach(r => total += parseFloat(r["Valor Bruto"]) || 0);
 
-        registros.forEach(r => {
-          const valor = parseFloat(r["Valor Bruto"]) || 0;
-          total += valor;
-          const tipo = (r["Meio de Pagamento"] || "").toLowerCase();
-          if (tipo.includes("pix")) pix += valor;
-          else if (tipo.includes("boleto")) boleto += valor;
-          else outros += valor;
-        });
-
-        html += `
+        let html = `<h2>${empresa}</h2><div class="resumo">
           <span>💰 Total: R$ ${total.toFixed(2)}</span>
-          <span>📄 Boleto: R$ ${boleto.toFixed(2)}</span>
-          <span>🔁 PIX: R$ ${pix.toFixed(2)}</span>
-          <span>🏦 Outros: R$ ${outros.toFixed(2)}</span>
         </div>`;
 
         html += `<table>
           <thead>
             <tr>
+              <th>Tipo</th>
+              <th>Número</th>
+              <th>Parcela</th>
               <th>Cliente / Fornecedor</th>
+              <th>Emissão</th>
               <th>Vencimento</th>
+              <th>Liquidação</th>
               <th>Valor Bruto</th>
-              <th>Meio de Pagamento</th>
-              <th>Histórico</th>
-              <th>Enviado Por</th>
+              <th>Competência</th>
+              <th>Plano de Contas</th>
+              <th>Centro de Custos</th>
               <th>Status</th>
               <th>Ações</th>
             </tr>
@@ -174,12 +159,17 @@
         registros.forEach((r, i) => {
           html += `
             <tr>
+              <td>${r["Tipo"]}</td>
+              <td>${r["Número"] || r["Numero"]}</td>
+              <td>${r["Parcela"]}</td>
               <td>${r["Cliente / Fornecedor"]}</td>
+              <td>${r["Emissao"]}</td>
               <td>${r["Vencimento"]}</td>
+              <td>${r["Liquidacao"]}</td>
               <td>R$ ${(parseFloat(r["Valor Bruto"]) || 0).toFixed(2)}</td>
-              <td>${r["Meio de Pagamento"]}</td>
-              <td>${r["Histórico"]}</td>
-              <td>${r["Enviado Por"]}</td>
+              <td>${r["Competencia"]}</td>
+              <td>${r["Plano de Contas"]}</td>
+              <td>${r["Centro de Custos"]}</td>
               <td id="status-${empresa}-${i}">${r["Status"]}</td>
               <td>
                 <button class="btn-status btn-aprovar" onclick="atualizarStatus('${empresa}', ${i}, 'Aprovado')">✅</button>
@@ -200,8 +190,8 @@
       try {
         await fetch(URL_SCRIPT, {
           method: "POST",
-          body: JSON.stringify({ _linha: linha, Status: novo }),
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ _linha: linha, Status: novo })
         });
         document.getElementById(`status-${empresa}-${index}`).innerText = novo;
       } catch (e) {
