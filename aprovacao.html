@@ -67,6 +67,8 @@
 
       const dataInicio = new Date(document.getElementById("dataInicio").value);
       const dataFim = new Date(document.getElementById("dataFim").value);
+      dataFim.setHours(23, 59, 59, 999); // <- CORREÇÃO AQUI
+
       const empresaSelecionada = document.getElementById("filtroEmpresa").value;
 
       const filtrado = dadosCAP.filter(item => {
@@ -80,8 +82,7 @@
       colunas.forEach(col => cabecalho.innerHTML += `<th>${col}</th>`);
       cabecalho.innerHTML += "<th>Status</th>";
 
-      const corpoTabela = document.getElementById("corpoTabela");
-      corpoTabela.innerHTML = "";
+      corpo.innerHTML = "";
       const resumo = {};
 
       filtrado.forEach(linha => {
@@ -102,7 +103,7 @@
           tr += `<td>${conteudo}</td>`;
         });
         tr += `<td><button class='btn-aprovar' onclick='aprovarLinha(${linha._linha}, this)'>✅ Aprovar</button></td></tr>`;
-        corpoTabela.innerHTML += tr;
+        corpo.innerHTML += tr;
       });
 
       preencherFiltroEmpresas();
