@@ -2,101 +2,54 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>CAPs - Aprovação | Grupo DV</title>
+  <title>CAPs para Aprovação - Grupo DV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
-
     header {
-      background-color: #003366;
-      color: white;
-      display: flex;
-      align-items: center;
+      background-color: #003366; color: white;
+      display: flex; align-items: center;
       padding: 10px 20px;
     }
+    header img { height: 40px; margin-right: 15px; }
+    header h1 { font-size: 1.5em; margin: 0; }
 
-    header img {
-      height: 40px;
-      margin-right: 15px;
-    }
-
-    header h1 {
-      font-size: 1.5em;
-      margin: 0;
-    }
-
-    .container {
-      width: 100%;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-
-    .botoes-massa {
-      text-align: center;
-      margin: 20px 0;
-    }
-
+    .container { max-width: 1400px; margin: auto; padding: 20px; }
+    .botoes-massa { text-align: center; margin: 20px 0; }
     .botoes-massa button {
-      padding: 10px 15px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-      margin: 0 10px;
+      padding: 10px 15px; border: none; border-radius: 6px;
+      font-weight: bold; color: white; cursor: pointer; margin: 0 10px;
     }
-
     .aprovar-todos { background-color: #28a745; }
     .negar-todos { background-color: #dc3545; }
 
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      background: white;
+      width: 100%; border-collapse: collapse;
+      margin-top: 10px; background: white;
     }
-
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: left;
-      font-size: 14px;
+      border: 1px solid #ccc; padding: 8px; text-align: left; font-size: 14px;
     }
-
-    th {
-      background-color: #003366;
-      color: white;
-    }
+    th { background-color: #003366; color: white; }
 
     .btn-status {
-      padding: 5px 8px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin: 0 2px;
+      padding: 5px 8px; border: none; border-radius: 5px;
+      cursor: pointer; margin: 0 2px;
     }
-
     .btn-aprovar { background-color: #28a745; color: white; }
     .btn-negar { background-color: #dc3545; color: white; }
     .btn-reverter { background-color: #6c757d; color: white; }
 
     .resumo {
-      background: #f1f1f1;
-      padding: 10px;
-      margin: 10px 0 20px 0;
+      background: #f1f1f1; padding: 10px; margin: 10px 0 20px 0;
       border-left: 5px solid #003366;
     }
-
-    .resumo span {
-      display: inline-block;
-      margin-right: 20px;
-      font-weight: bold;
-    }
+    .resumo span { display: inline-block; margin-right: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
   <header>
-    <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" alt="Logo Grupo DV" />
+    <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" />
     <h1>CAPs para Aprovação</h1>
   </header>
 
@@ -110,21 +63,27 @@
   </div>
 
   <script>
-    // Exemplo de dados fictícios (substitua por fetch da planilha no futuro)
-    const dadosPlanilha = [
-      { Empresa: "DELICIA GOURMET", Fornecedor: "Fornecedor A", Vencimento: "05/08/2025", Valor: 1800.55, Modalidade: "PIX", Historico: "Compra matéria-prima", Enviado: "João", Status: "PENDENTE" },
-      { Empresa: "DELICIA GOURMET", Fornecedor: "Fornecedor B", Vencimento: "06/08/2025", Valor: 900.00, Modalidade: "Boleto", Historico: "Aluguel", Enviado: "Maria", Status: "PENDENTE" },
-      { Empresa: "PADARIA DELICIA", Fornecedor: "Fornecedor X", Vencimento: "07/08/2025", Valor: 1450.90, Modalidade: "Transferência", Historico: "Compra estoque", Enviado: "Carlos", Status: "PENDENTE" }
-    ];
-
+    const URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec";
     let dadosPorEmpresa = {};
 
-    dadosPlanilha.forEach(item => {
-      if (!dadosPorEmpresa[item.Empresa]) dadosPorEmpresa[item.Empresa] = [];
-      dadosPorEmpresa[item.Empresa].push(item);
-    });
+    async function carregarDados() {
+      try {
+        const res = await fetch(URL_SCRIPT);
+        const dados = await res.json();
 
-    renderizarPainel();
+        dadosPorEmpresa = {};
+        dados.forEach(item => {
+          const empresa = item["Empresa"];
+          if (!dadosPorEmpresa[empresa]) dadosPorEmpresa[empresa] = [];
+          dadosPorEmpresa[empresa].push(item);
+        });
+
+        renderizarPainel();
+      } catch (e) {
+        alert("❌ Falha ao carregar dados da planilha.");
+        console.error(e);
+      }
+    }
 
     function renderizarPainel() {
       const painel = document.getElementById("painel");
@@ -137,11 +96,12 @@
         let total = 0, pix = 0, boleto = 0, outros = 0;
 
         registros.forEach(r => {
-          total += r.Valor;
-          const tipo = r.Modalidade.toLowerCase();
-          if (tipo.includes("pix")) pix += r.Valor;
-          else if (tipo.includes("boleto")) boleto += r.Valor;
-          else outros += r.Valor;
+          const valor = parseFloat(r["Valor Bruto"]) || 0;
+          total += valor;
+          const tipo = (r["Meio de Pagamento"] || "").toLowerCase();
+          if (tipo.includes("pix")) pix += valor;
+          else if (tipo.includes("boleto")) boleto += valor;
+          else outros += valor;
         });
 
         html += `
@@ -151,8 +111,7 @@
           <span>🏦 Outros: R$ ${outros.toFixed(2)}</span>
         </div>`;
 
-        html += `
-        <table>
+        html += `<table>
           <thead>
             <tr>
               <th>Cliente / Fornecedor</th>
@@ -164,42 +123,55 @@
               <th>Status</th>
               <th>Ações</th>
             </tr>
-          </thead>
-          <tbody>`;
+          </thead><tbody>`;
 
         registros.forEach((r, i) => {
           html += `
             <tr>
-              <td>${r.Fornecedor}</td>
-              <td>${r.Vencimento}</td>
-              <td>R$ ${r.Valor.toFixed(2)}</td>
-              <td>${r.Modalidade}</td>
-              <td>${r.Historico}</td>
-              <td>${r.Enviado}</td>
-              <td id="status-${empresa}-${i}">${r.Status}</td>
+              <td>${r["Cliente / Fornecedor"]}</td>
+              <td>${r["Vencimento"]}</td>
+              <td>R$ ${(parseFloat(r["Valor Bruto"]) || 0).toFixed(2)}</td>
+              <td>${r["Meio de Pagamento"]}</td>
+              <td>${r["Histórico"]}</td>
+              <td>${r["Enviado Por"]}</td>
+              <td id="status-${empresa}-${i}">${r["Status"]}</td>
               <td>
-                <button class="btn-status btn-aprovar" onclick="alterarStatus('${empresa}', ${i}, 'Aprovado')">✅</button>
-                <button class="btn-status btn-negar" onclick="alterarStatus('${empresa}', ${i}, 'Negado')">❌</button>
-                <button class="btn-status btn-reverter" onclick="alterarStatus('${empresa}', ${i}, 'PENDENTE')">↩️</button>
+                <button class="btn-status btn-aprovar" onclick="atualizarStatus('${empresa}', ${i}, 'Aprovado')">✅</button>
+                <button class="btn-status btn-negar" onclick="atualizarStatus('${empresa}', ${i}, 'Negado')">❌</button>
+                <button class="btn-status btn-reverter" onclick="atualizarStatus('${empresa}', ${i}, 'PENDENTE')">↩️</button>
               </td>
             </tr>`;
         });
 
-        html += `</tbody></table><hr/>`;
+        html += "</tbody></table><hr/>";
         painel.innerHTML += html;
       }
     }
 
-    function alterarStatus(empresa, index, novo) {
-      dadosPorEmpresa[empresa][index].Status = novo;
-      document.getElementById(`status-${empresa}-${index}`).innerText = novo;
+    async function atualizarStatus(empresa, index, novo) {
+      const registro = dadosPorEmpresa[empresa][index];
+      const linha = registro["__linha"]; // você pode colocar isso no Apps Script
+
+      try {
+        await fetch(URL_SCRIPT, {
+          method: "POST",
+          body: JSON.stringify({ linha, status: novo }),
+          headers: { "Content-Type": "application/json" },
+        });
+        document.getElementById(`status-${empresa}-${index}`).innerText = novo;
+      } catch (e) {
+        alert("❌ Falha na conexão com o servidor.");
+        console.error(e);
+      }
     }
 
     function alterarTodos(novoStatus) {
       for (const empresa in dadosPorEmpresa) {
-        dadosPorEmpresa[empresa].forEach((_, i) => alterarStatus(empresa, i, novoStatus));
+        dadosPorEmpresa[empresa].forEach((_, i) => atualizarStatus(empresa, i, novoStatus));
       }
     }
+
+    carregarDados();
   </script>
 </body>
 </html>
