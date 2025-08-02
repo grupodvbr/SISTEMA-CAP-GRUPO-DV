@@ -8,25 +8,31 @@
     body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; padding: 0; }
     header { background: #004080; color: white; padding: 15px 20px; font-size: 20px; font-weight: bold; }
     .container { padding: 20px; max-width: 1200px; margin: auto; }
-    .filtros { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-    select, button { padding: 10px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
+    .filtros { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    select, button, input[type="date"] { padding: 10px; font-size: 14px; border-radius: 6px; border: 1px solid #ccc; }
+    .resumo { display: flex; flex-direction: column; gap: 10px; margin: 20px 0; }
+    .box-resumo { background: #fff; border-left: 5px solid #004080; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .box-resumo strong { font-size: 1.1em; display: block; margin-bottom: 5px; }
     .tabela-cap { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
     .tabela-cap th, .tabela-cap td { border: 1px solid #ddd; padding: 10px; text-align: left; }
     .tabela-cap th { background: #004080; color: white; }
     .tabela-cap tr:hover { background-color: #f1f1f1; }
     .btn-aprovar { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-    .btn-aprovar-massa { margin-top: 10px; background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+    .btn-aprovar-massa { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
   </style>
 </head>
 <body>
   <header>📋 Aprovação de CAPs</header>
   <div class="container">
     <div class="filtros">
+      <label>Data início: <input type="date" id="dataInicio"></label>
+      <label>Data fim: <input type="date" id="dataFim"></label>
       <select id="filtroEmpresa" onchange="filtrar()">
         <option value="">Filtrar por Empresa</option>
       </select>
       <button class="btn-aprovar-massa" onclick="aprovarSelecionados()">✅ Aprovar Selecionados</button>
     </div>
+    <div class="resumo" id="resumoEmpresas"></div>
     <table class="tabela-cap">
       <thead>
         <tr id="cabecalho"></tr>
@@ -40,6 +46,12 @@
     let empresas = new Set();
 
     async function carregarCAPs() {
+      const hoje = new Date();
+      const ontem = new Date();
+      ontem.setDate(hoje.getDate() - 1);
+      document.getElementById("dataInicio").value = ontem.toISOString().slice(0,10);
+      document.getElementById("dataFim").value = hoje.toISOString().slice(0,10);
+
       const res = await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec");
       const resultado = await res.json();
       dadosCAP = resultado.filter(item => item.Status !== "Aprovado");
@@ -52,21 +64,64 @@
       corpo.innerHTML = "";
       cabecalho.innerHTML = "<th><input type='checkbox' id='selectAll' onchange='selecionarTodos(this)'></th>";
 
-      if (dadosCAP.length === 0) return;
+      const dataInicio = new Date(document.getElementById("dataInicio").value);
+      const dataFim = new Date(document.getElementById("dataFim").value);
 
-      const colunas = Object.keys(dadosCAP[0]).filter(c => c !== "_linha");
+      const filtrado = dadosCAP.filter(item => {
+        const data = new Date(item.Vencimento);
+        return data >= dataInicio && data <= dataFim;
+      });
+
+      const colunas = Object.keys(filtrado[0] || {}).filter(c => c !== "_linha");
       colunas.forEach(col => cabecalho.innerHTML += `<th>${col}</th>`);
       cabecalho.innerHTML += "<th>Status</th>";
 
-      dadosCAP.forEach((linha, i) => {
-        empresas.add(linha.empresa);
+      const corpoTabela = document.getElementById("corpoTabela");
+      corpoTabela.innerHTML = "";
+      const resumo = {};
+
+      filtrado.forEach(linha => {
+        const empresa = linha.Empresa || "Outros";
+        empresas.add(empresa);
+
+        if (!resumo[empresa]) resumo[empresa] = { boleto: 0, pix: 0, total: 0 };
+
+        const valor = parseFloat(linha["Valor Bruto"].replace(',', '.')) || 0;
+        resumo[empresa].total += valor;
+        if (linha["Meio de Pagamento"].toLowerCase().includes("boleto")) resumo[empresa].boleto += valor;
+        else if (linha["Meio de Pagamento"].toLowerCase().includes("pix")) resumo[empresa].pix += valor;
+
         let tr = `<tr><td><input type='checkbox' class='checkboxCAP' data-linha='${linha._linha}'></td>`;
-        colunas.forEach(col => tr += `<td>${linha[col] || ""}</td>`);
+        colunas.forEach(col => {
+          let conteudo = linha[col] || "";
+          if (col === "Valor Bruto") conteudo = formatarValor(valor);
+          tr += `<td>${conteudo}</td>`;
+        });
         tr += `<td><button class='btn-aprovar' onclick='aprovarLinha(${linha._linha}, this)'>✅ Aprovar</button></td></tr>`;
-        corpo.innerHTML += tr;
+        corpoTabela.innerHTML += tr;
       });
 
       preencherFiltroEmpresas();
+      montarResumo(resumo);
+    }
+
+    function montarResumo(resumo) {
+      const divResumo = document.getElementById("resumoEmpresas");
+      divResumo.innerHTML = "";
+      for (const emp in resumo) {
+        divResumo.innerHTML += `
+          <div class="box-resumo">
+            <strong>${emp}</strong>
+            💸 Boletos: ${formatarValor(resumo[emp].boleto)}<br>
+            💰 PIX: ${formatarValor(resumo[emp].pix)}<br>
+            🏦 Conta Sicredi: <em>(aguardando integração)</em>
+          </div>
+        `;
+      }
+    }
+
+    function formatarValor(v) {
+      return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
     function preencherFiltroEmpresas() {
@@ -76,17 +131,7 @@
     }
 
     function filtrar() {
-      const empresa = document.getElementById("filtroEmpresa").value;
-      if (!empresa) return montarTabela();
-      const filtrado = dadosCAP.filter(l => l.empresa === empresa);
-      const corpo = document.getElementById("corpoTabela");
-      corpo.innerHTML = "";
-      filtrado.forEach(linha => {
-        let tr = `<tr><td><input type='checkbox' class='checkboxCAP' data-linha='${linha._linha}'></td>`;
-        Object.keys(linha).filter(c => c !== "_linha").forEach(col => tr += `<td>${linha[col] || ""}</td>`);
-        tr += `<td><button class='btn-aprovar' onclick='aprovarLinha(${linha._linha}, this)'>✅ Aprovar</button></td></tr>`;
-        corpo.innerHTML += tr;
-      });
+      montarTabela();
     }
 
     function selecionarTodos(checkbox) {
