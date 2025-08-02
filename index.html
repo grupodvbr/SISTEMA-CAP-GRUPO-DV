@@ -2,246 +2,157 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Sistema de CAP</title>
+  <title>Importar CAP - Grupo DV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #f2f2f2; }
-    nav {
-      background-color: #007bff;
+    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; }
+    header {
+      background-color: #003366;
       color: white;
-      padding: 15px 20px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 1000;
+      padding: 10px 20px;
     }
-    .menu {
-      display: flex;
-      gap: 15px;
-      align-items: center;
-    }
-    .menu select {
-      padding: 8px;
-      border-radius: 6px;
-      border: none;
-      font-size: 14px;
-    }
-    .container {
-      max-width: 1200px;
-      margin: auto;
-      padding: 40px 20px;
-    }
-    #calendar {
-      background: #fff;
-      padding: 20px;
+    header img { height: 40px; margin-right: 15px; }
+    header h1 { font-size: 1.4em; margin: 0; }
+
+    .container { padding: 20px; max-width: 1200px; margin: auto; }
+
+    .import-box {
+      background: white;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .upload-box, .historico {
-      background: #fff;
       padding: 20px;
-      border-radius: 10px;
-      margin-top: 40px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-    .upload-box label { display: block; font-weight: bold; margin-bottom: 10px; }
-    .upload-box input[type="file"] {
-      width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #ccc; margin-bottom: 15px;
-    }
-    .upload-box button {
-      background: #007bff; color: white; border: none; padding: 12px 20px;
-      border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px;
-    }
-    .historico h3 { margin-top: 0; }
-    .historico ul { list-style: none; padding-left: 0; }
-    .historico li { padding: 8px 0; border-bottom: 1px solid #eee; }
-    .historico button {
-      margin-top: 10px; background: #dc3545; color: white; border: none;
-      padding: 8px 12px; border-radius: 6px; cursor: pointer;
-    }
-    #overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 9999;
-      color: white;
-      font-size: 22px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       text-align: center;
-      padding-top: 20%;
+    }
+
+    .import-box input {
+      margin-top: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #003366;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .btn-enviar {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      margin-top: 20px;
+      cursor: pointer;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
-  <nav>
-    <div style="font-size: 20px; font-weight: bold;">Sistema de CAP</div>
-    <div class="menu">
-      <select id="usuarioSelect" onchange="autenticarUsuario(this)">
-        <option value="">🕤 Login</option>
-        <option value="MERCATTO">MERCATTO</option>
-        <option value="DELICIA">DELÍCIA GOURMET</option>
-        <option value="VILLA">VILLA GOURMET</option>
-        <option value="PADARIA">PADARIA DELÍCIA</option>
-      </select>
-      <select onchange="if(this.value) window.location.href=this.value">
-        <option value="">📁 Navegar</option>
-        <option value="index.html">📤 Enviar CAP</option>
-        <option value="aprovacao.html">✅ Aprovação</option>
-        <option value="relatorios.html">📊 Relatórios</option>
-      </select>
-    </div>
-  </nav>
-
-  <div id="overlay">⏳ Processando, aguarde...</div>
+  <header>
+    <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" alt="Logo Grupo DV" />
+    <h1>Importar Arquivo de CAP</h1>
+  </header>
 
   <div class="container">
-    <div id="calendar"></div>
-    <div class="upload-box">
-      <form id="capForm">
-        <label for="arquivo">Upload de Planilha (Excel):</label>
-        <input type="file" id="arquivo" name="arquivo" accept=".xlsx,.xls" required>
-        <button type="submit">Enviar CAP</button>
-      </form>
+    <div class="import-box">
+      <p><strong>Selecione um arquivo Excel (.xlsx) no formato de CAP</strong></p>
+      <input type="file" id="inputExcel" accept=".xlsx" />
+      <button class="btn-enviar" onclick="enviarDados()">📤 Enviar para planilha</button>
     </div>
-    <div class="historico">
-      <h3>Histórico de Envios</h3>
-      <ul id="listaHistorico"></ul>
-      <button onclick="limparHistorico()">Limpar Histórico</button>
-    </div>
+
+    <div id="previewTabela"></div>
   </div>
+
   <script>
-    const usuarios = {
-      "MERCATTO": { senha: "mercatto123", empresa: "MERCATTO" },
-      "DELICIA": { senha: "delicia123", empresa: "DELÍCIA GOURMET" },
-      "VILLA": { senha: "villa123", empresa: "VILLA GOURMET" },
-      "PADARIA": { senha: "padaria123", empresa: "PADARIA DELÍCIA" }
-    };
-    let usuarioAutenticado = null;
-    function autenticarUsuario(select) {
-      const usuario = select.value;
-      if (!usuario) return;
-      const dadosUsuario = usuarios[usuario];
-      const senhaDigitada = prompt(`Digite a senha para ${usuario}:`);
-      if (senhaDigitada === dadosUsuario?.senha) {
-        alert(`Bem-vindo(a), ${usuario} - ${dadosUsuario.empresa}!`);
-        usuarioAutenticado = { nome: usuario, empresa: dadosUsuario.empresa };
-        select.options[select.selectedIndex].textContent = `${usuario} - ${dadosUsuario.empresa}`;
-        renderizarCalendario();
-        exibirHistorico();
-      } else {
-        alert("Senha incorreta!");
-        select.value = "";
-      }
-    }
-    function renderizarCalendario() {
-      const calendarEl = document.getElementById('calendar');
-      calendarEl.innerHTML = "";
-      const eventosPorUsuario = {
-        "MERCATTO": [
-          { title: '📦 Entrega de Insumos', start: '2025-08-03', color: '#28a745' },
-          { title: '💼 Reunião de Custos', start: '2025-08-10', color: '#007bff' }
-        ],
-        "DELICIA": [
-          { title: '💡 Vencimento da Luz', start: '2025-08-07', color: '#ffc107' },
-          { title: '📊 Relatório Mensal', start: '2025-08-12', color: '#17a2b8' }
-        ],
-        "VILLA": [
-          { title: '🛒 Compra de Carnes', start: '2025-08-09', color: '#6f42c1' },
-          { title: '📦 Recebimento de Bebidas', start: '2025-08-14', color: '#28a745' }
-        ],
-        "PADARIA": [
-          { title: '🏦 Vencimento Fornecedores', start: '2025-08-05', color: '#dc3545' },
-          { title: '🍞 Entrega de Farinha', start: '2025-08-18', color: '#ffc107' }
-        ]
-      };
-      const eventosFicticios = eventosPorUsuario[usuarioAutenticado?.nome] || [];
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
-        locale: 'pt-br',
-        height: 'auto',
-        events: eventosFicticios
-      });
-      calendar.render();
-    }
-    async function processarUpload(file, usuarioAutenticado) {
-      document.getElementById('overlay').style.display = 'block';
+    let dadosLidos = [];
+
+    document.getElementById("inputExcel").addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
-      reader.onload = async function(event) {
-        const data = new Uint8Array(event.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonCompleto = XLSX.utils.sheet_to_json(sheet, { defval: "", header: 1 });
-        const dados = jsonCompleto.slice(10);
-        const cabecalhos = jsonCompleto[10];
-        const json = XLSX.utils.sheet_to_json([cabecalhos, ...dados], { defval: "" });
+        const json = XLSX.utils.sheet_to_json(sheet);
 
-        const erros = [];
-        const itens = json.map((linha, i) => {
-          const empresa = linha["Empresas"] || "";
-          const cliente = linha["Plano de Contas"] || "";
-          const vencimento = linha["Unnamed: 2"] || linha["Vencimento"] || "";
-          const valor = linha["Unnamed: 30"] || linha["Valor Bruto"] || "";
-          const pagamento = linha["Unnamed: 20"] || linha["Meio de Pagamento"] || "";
-          const historico = linha["Unnamed: 21"] || linha["Histórico"] || "";
-          if (!(empresa && cliente && vencimento && valor && pagamento && historico)) {
-            erros.push(`Linha ${i + 2}`);
-          }
-          return { empresa, cliente, vencimento, valor, pagamento, historico, enviadoPor: usuarioAutenticado.empresa };
-        });
+        dadosLidos = json.map(row => ({
+          Empresa: row["Empresa"] || "",
+          "Cliente / Fornecedor": row["Cliente / Fornecedor"] || "",
+          Vencimento: row["Vencimento"] || "",
+          "Valor Bruto": row["Valor Bruto"] || "",
+          "Meio de Pagamento": row["Meio de Pagamento"] || "",
+          "Tipo de Documento": row["Tipo de Documento"] || "",
+          Histórico: row["Histórico"] || ""
+        }));
 
-        if (erros.length) {
-          document.getElementById('overlay').style.display = 'none';
-          return alert("Erros encontrados nas linhas:\n" + erros.join("\n"));
-        }
-
-        const res = await fetch("https://script.google.com/macros/s/AKfycbxv4swq8Bgja6tZ8cJYzVp_RXwqCAimHoBwu5wuql-48TW0B7MI3HyXmPeqbsfO9csDvg/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ itens })
-        });
-
-        const resposta = await res.json();
-        document.getElementById('overlay').style.display = 'none';
-
-        if (resposta.status === "erro") alert("Ocorreram erros:\n" + resposta.erros.join("\n"));
-        else alert("CAP enviado com sucesso!");
-
-        document.getElementById('arquivo').value = "";
-        exibirHistorico();
+        exibirTabela();
       };
-      reader.readAsArrayBuffer(file);
-    }
 
-    document.getElementById('capForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const input = document.getElementById('arquivo');
-      const file = input.files[0];
-      if (!file || !usuarioAutenticado) return alert("Você precisa estar logado e selecionar uma planilha.");
-      await processarUpload(file, usuarioAutenticado);
+      reader.readAsArrayBuffer(file);
     });
 
-    function exibirHistorico() {
-      const lista = document.getElementById("listaHistorico");
-      lista.innerHTML = "";
-      const historico = JSON.parse(localStorage.getItem("historicoCAP") || "[]");
-      historico.forEach(item => {
-        const li = document.createElement("li");
-        li.textContent = `${item.data} - ${item.empresa} - ${item.nome}`;
-        lista.appendChild(li);
+    function exibirTabela() {
+      if (dadosLidos.length === 0) return;
+
+      let tabela = "<table><thead><tr>";
+      const colunas = Object.keys(dadosLidos[0]);
+      colunas.forEach(col => {
+        tabela += `<th>${col}</th>`;
       });
+      tabela += "</tr></thead><tbody>";
+
+      dadosLidos.forEach(row => {
+        tabela += "<tr>";
+        colunas.forEach(col => {
+          tabela += `<td>${row[col]}</td>`;
+        });
+        tabela += "</tr>";
+      });
+
+      tabela += "</tbody></table>";
+      document.getElementById("previewTabela").innerHTML = tabela;
     }
-    function limparHistorico() {
-      if (confirm("Tem certeza que deseja limpar o histórico local de envios?")) {
-        localStorage.removeItem("historicoCAP");
-        exibirHistorico();
+
+    async function enviarDados() {
+      if (dadosLidos.length === 0) {
+        alert("Nenhum dado para enviar.");
+        return;
+      }
+
+      const endpoint = "https://script.google.com/macros/s/AKfycbwGQOEFv4VtDVYnHoxK9OxHHT15AdYm1N_XHSGatafZMLlumuQbBI0OuWheootDtGoMpA/exec";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dados: dadosLidos })
+      });
+
+      if (res.ok) {
+        alert("Dados enviados com sucesso!");
+        dadosLidos = [];
+        document.getElementById("previewTabela").innerHTML = "";
+      } else {
+        alert("Erro ao enviar os dados.");
       }
     }
   </script>
