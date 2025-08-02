@@ -52,7 +52,7 @@
       document.getElementById("dataInicio").value = ontem.toISOString().slice(0,10);
       document.getElementById("dataFim").value = hoje.toISOString().slice(0,10);
 
-      const res = await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec");
+      const res = await fetch("https://script.google.com/macros/s/AKfycbzVgnY1_8asx9ZldPmqhwsP5VZCbOHROlrgwJ-3LdEGnWz22t2dol6kmwXEB7L0aKsa/exec");
       const resultado = await res.json();
       dadosCAP = resultado.filter(item => item.Status !== "Aprovado");
       montarTabela();
@@ -140,7 +140,7 @@
 
     async function aprovarLinha(linha, btn) {
       btn.textContent = "⏳";
-      await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec", {
+      await fetch("https://script.google.com/macros/s/AKfycbzVgnY1_8asx9ZldPmqhwsP5VZCbOHROlrgwJ-3LdEGnWz22t2dol6kmwXEB7L0aKsa/exec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ linha, novoStatus: "Aprovado" })
@@ -152,7 +152,7 @@
       const selecionados = [...document.querySelectorAll(".checkboxCAP:checked")];
       for (let checkbox of selecionados) {
         const linha = checkbox.getAttribute("data-linha");
-        await fetch("https://script.google.com/macros/s/AKfycbwXwuAYdoFNZSgM9Gd_DTtFvMjAcr34gPLLhuhzRMDNg2BZo83NXLpUlv2Kztu4nr_o6w/exec", {
+        await fetch("https://script.google.com/macros/s/AKfycbzVgnY1_8asx9ZldPmqhwsP5VZCbOHROlrgwJ-3LdEGnWz22t2dol6kmwXEB7L0aKsa/exec", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ linha, novoStatus: "Aprovado" })
