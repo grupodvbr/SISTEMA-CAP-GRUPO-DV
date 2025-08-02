@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Visualização de CAPs - Grupo DV</title>
+  <title>CAPs - Aprovação | Grupo DV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+
     header {
       background-color: #003366;
       color: white;
@@ -14,23 +14,28 @@
       align-items: center;
       padding: 10px 20px;
     }
+
     header img {
       height: 40px;
       margin-right: 15px;
     }
+
     header h1 {
       font-size: 1.5em;
       margin: 0;
     }
+
     .container {
-      max-width: 1400px;
-      margin: auto;
+      width: 100%;
       padding: 20px;
+      box-sizing: border-box;
     }
+
     .botoes-massa {
       text-align: center;
       margin: 20px 0;
     }
+
     .botoes-massa button {
       padding: 10px 15px;
       border: none;
@@ -40,24 +45,29 @@
       cursor: pointer;
       margin: 0 10px;
     }
+
     .aprovar-todos { background-color: #28a745; }
     .negar-todos { background-color: #dc3545; }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 10px;
       background: white;
     }
+
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: left;
       font-size: 14px;
     }
+
     th {
       background-color: #003366;
       color: white;
     }
+
     .btn-status {
       padding: 5px 8px;
       border: none;
@@ -65,35 +75,32 @@
       cursor: pointer;
       margin: 0 2px;
     }
+
     .btn-aprovar { background-color: #28a745; color: white; }
     .btn-negar { background-color: #dc3545; color: white; }
     .btn-reverter { background-color: #6c757d; color: white; }
+
     .resumo {
       background: #f1f1f1;
       padding: 10px;
       margin: 10px 0 20px 0;
       border-left: 5px solid #003366;
     }
+
     .resumo span {
       display: inline-block;
       margin-right: 20px;
       font-weight: bold;
-    }
-    input[type="file"] {
-      padding: 10px;
-      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <header>
     <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" alt="Logo Grupo DV" />
-    <h1>Visualização de CAPs</h1>
+    <h1>CAPs para Aprovação</h1>
   </header>
 
   <div class="container">
-    <input type="file" id="inputExcel" accept=".xlsx" />
-    
     <div class="botoes-massa">
       <button class="aprovar-todos" onclick="alterarTodos('Aprovado')">✅ Aprovar Todos</button>
       <button class="negar-todos" onclick="alterarTodos('Negado')">❌ Negar Todos</button>
@@ -103,40 +110,21 @@
   </div>
 
   <script>
+    // Exemplo de dados fictícios (substitua por fetch da planilha no futuro)
+    const dadosPlanilha = [
+      { Empresa: "DELICIA GOURMET", Fornecedor: "Fornecedor A", Vencimento: "05/08/2025", Valor: 1800.55, Modalidade: "PIX", Historico: "Compra matéria-prima", Enviado: "João", Status: "PENDENTE" },
+      { Empresa: "DELICIA GOURMET", Fornecedor: "Fornecedor B", Vencimento: "06/08/2025", Valor: 900.00, Modalidade: "Boleto", Historico: "Aluguel", Enviado: "Maria", Status: "PENDENTE" },
+      { Empresa: "PADARIA DELICIA", Fornecedor: "Fornecedor X", Vencimento: "07/08/2025", Valor: 1450.90, Modalidade: "Transferência", Historico: "Compra estoque", Enviado: "Carlos", Status: "PENDENTE" }
+    ];
+
     let dadosPorEmpresa = {};
 
-    document.getElementById("inputExcel").addEventListener("change", function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-        const dados = json.map(l => ({
-          Empresa: l["Empresa"] || "",
-          Fornecedor: l["Cliente / Fornecedor"] || "",
-          Vencimento: l["Vencimento"] || "",
-          Valor: parseFloat(l["Valor Bruto"]) || 0,
-          Modalidade: l["Meio de Pagamento"] || "",
-          Historico: l["Histórico"] || "",
-          Enviado: l["Enviado Por"] || "",
-          Status: "PENDENTE"
-        })).filter(l => l.Empresa && l.Fornecedor);
-
-        dadosPorEmpresa = {};
-        dados.forEach(item => {
-          if (!dadosPorEmpresa[item.Empresa]) dadosPorEmpresa[item.Empresa] = [];
-          dadosPorEmpresa[item.Empresa].push(item);
-        });
-
-        renderizarPainel();
-      };
-      reader.readAsArrayBuffer(file);
+    dadosPlanilha.forEach(item => {
+      if (!dadosPorEmpresa[item.Empresa]) dadosPorEmpresa[item.Empresa] = [];
+      dadosPorEmpresa[item.Empresa].push(item);
     });
+
+    renderizarPainel();
 
     function renderizarPainel() {
       const painel = document.getElementById("painel");
