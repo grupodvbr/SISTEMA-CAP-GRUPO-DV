@@ -91,28 +91,32 @@
       reader.onload = function (e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(sheet);
 
-        dadosLidos = json.map(row => ({
-          Empresa: row["Empresa"] || "",
-          "Cliente / Fornecedor": row["Cliente / Fornecedor"] || "",
-          Vencimento: row["Vencimento"] || "",
-          "Valor Bruto": row["Valor Bruto"] || "",
-          "Meio de Pagamento": row["Meio de Pagamento"] || "",
-          "Tipo de Documento": row["Tipo de Documento"] || "",
-          Histórico: row["Histórico"] || ""
-        }));
+        // Limpar dados e carregar apenas os válidos
+        dadosLidos = json
+          .map(row => ({
+            Empresa: row["Empresa"] || "",
+            "Cliente / Fornecedor": row["Cliente / Fornecedor"] || "",
+            Vencimento: row["Vencimento"] || "",
+            "Valor Bruto": row["Valor Bruto"] || "",
+            "Meio de Pagamento": row["Meio de Pagamento"] || "",
+            "Tipo de Documento": row["Tipo de Documento"] || "",
+            Histórico: row["Histórico"] || ""
+          }))
+          .filter(linha => linha.Empresa && linha["Valor Bruto"]); // remove vazios
 
         exibirTabela();
       };
-
       reader.readAsArrayBuffer(file);
     });
 
     function exibirTabela() {
-      if (dadosLidos.length === 0) return;
+      if (dadosLidos.length === 0) {
+        document.getElementById("previewTabela").innerHTML = "<p>Nenhuma linha válida encontrada.</p>";
+        return;
+      }
 
       let tabela = "<table><thead><tr>";
       const colunas = Object.keys(dadosLidos[0]);
@@ -148,11 +152,11 @@
       });
 
       if (res.ok) {
-        alert("Dados enviados com sucesso!");
+        alert("✅ Dados enviados com sucesso!");
         dadosLidos = [];
         document.getElementById("previewTabela").innerHTML = "";
       } else {
-        alert("Erro ao enviar os dados.");
+        alert("❌ Erro ao enviar os dados.");
       }
     }
   </script>
