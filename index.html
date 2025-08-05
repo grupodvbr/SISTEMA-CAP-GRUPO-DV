@@ -12,10 +12,20 @@
       color: white;
       display: flex;
       align-items: center;
+      justify-content: space-between;
       padding: 10px 20px;
     }
     header img { height: 40px; margin-right: 15px; }
-    header h1 { font-size: 1.4em; margin: 0; }
+    header h1 { font-size: 1.4em; margin: 0; flex-grow: 1; }
+    header a {
+      background-color: #ffc107;
+      color: black;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-weight: bold;
+      font-size: 0.9em;
+    }
     .container {
       padding: 20px;
       width: 100%;
@@ -61,8 +71,11 @@
 </head>
 <body>
   <header>
-    <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" alt="Logo Grupo DV" />
-    <h1>Importar Arquivo de CAP</h1>
+    <div style="display: flex; align-items: center;">
+      <img src="https://raw.githubusercontent.com/grupodvbr/LOGOS/main/grupodv.png" alt="Logo Grupo DV" />
+      <h1>Importar Arquivo de CAP</h1>
+    </div>
+    <a href="painel-aprovacao.html">🔍 Aprovação de Títulos</a>
   </header>
 
   <div class="container">
@@ -90,7 +103,7 @@
         const raw = XLSX.utils.sheet_to_json(sheet, { range: 10, header: 1 });
 
         dadosLidos = raw
-          .filter(l => l.length > 0 && l[3]) // Exige empresa
+          .filter(l => l.length > 0 && l[3])
           .map(l => ({
             Tipo: l[0] || "",
             Numero: l[1] || "",
@@ -128,20 +141,11 @@
       let tabela = "<table><thead><tr>";
       const colunas = Object.keys(dados[0]);
       colunas.forEach(col => tabela += `<th>${col}</th>`);
-      tabela += "<th>Status</th><th>Ação</th></tr></thead><tbody>";
+      tabela += "</tr></thead><tbody>";
 
       dados.forEach(row => {
         tabela += "<tr>";
         colunas.forEach(col => tabela += `<td>${row[col]}</td>`);
-        tabela += `
-          <td>${row.Status || "Pendente"}</td>
-          <td>
-            <select onchange="atualizarStatus('${row.Numero}', this.value)">
-              <option value="Pendente" ${row.Status === "Pendente" ? "selected" : ""}>Pendente</option>
-              <option value="Aprovado" ${row.Status === "Aprovado" ? "selected" : ""}>Aprovado</option>
-              <option value="Recusado" ${row.Status === "Recusado" ? "selected" : ""}>Recusado</option>
-            </select>
-          </td>`;
         tabela += "</tr>";
       });
 
@@ -168,37 +172,12 @@
 
       if (res.ok) {
         alert("✅ Dados salvos com sucesso!");
-        carregarTabela();
+        dadosLidos = [];
+        document.getElementById("previewTabela").innerHTML = "";
       } else {
         alert("❌ Erro ao salvar os dados.");
       }
     }
-
-    async function carregarTabela() {
-      const endpoint = "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec";
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "listar" })
-      });
-
-      const dados = await res.json();
-      exibirTabela(dados);
-    }
-
-    async function atualizarStatus(numero, novoStatus) {
-      const endpoint = "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec";
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acao: "atualizarStatus", numero, novoStatus })
-      });
-      carregarTabela();
-    }
-
-    // Carrega a tabela ao abrir a página
-    carregarTabela();
   </script>
 </body>
 </html>
