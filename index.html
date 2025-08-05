@@ -63,15 +63,15 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
     .import-container {
-      max-width: 1000px;
+      max-width: 1100px;
       margin: 20px auto;
       background: white;
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
-    .import-container input[type="file"] {
-      margin-bottom: 10px;
+    .import-container input[type="file"], .import-container button {
+      margin: 10px 0;
     }
     table {
       width: 100%;
@@ -114,6 +114,7 @@
 <div class="import-container">
   <h2>Importar Planilha de Eventos</h2>
   <input type="file" id="inputExcel" accept=".xlsx" />
+  <button onclick="enviarDados()">Enviar para planilha</button>
   <div id="previewTabela"></div>
 </div>
 
@@ -130,6 +131,7 @@
 
   let calendario;
   let eventosAtual = [];
+  let dadosLidos = [];
 
   function inicializarCalendario(eventos = []) {
     const calendarEl = document.getElementById('calendar');
@@ -205,26 +207,76 @@
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const raw = XLSX.utils.sheet_to_json(sheet, { range: 10, header: 1 });
 
-      const colunas = raw[0];
-      const linhas = raw.slice(1);
+      dadosLidos = raw
+        .filter(l => l.length > 0 && l[3])
+        .map(l => ({
+          Tipo: l[0] || "",
+          Numero: l[1] || "",
+          Parcela: l[2] || "",
+          Empresa: l[3] || "",
+          "Cliente / Fornecedor": l[4] || "",
+          Emissao: l[5] || "",
+          Vencimento: l[6] || "",
+          Liquidacao: l[7] || "",
+          "Valor Bruto": l[8] || "",
+          Competencia: l[9] || "",
+          "Plano de Contas": l[10] || "",
+          "Centro de Custos": l[11] || ""
+        }));
 
-      let tabela = "<table><thead><tr>";
-      colunas.forEach(col => tabela += `<th>${col}</th>`);
-      tabela += "</tr></thead><tbody>";
-
-      linhas.forEach(linha => {
-        tabela += "<tr>";
-        linha.forEach(celula => tabela += `<td>${celula || ""}</td>`);
-        tabela += "</tr>";
-      });
-
-      tabela += "</tbody></table>";
-      document.getElementById("previewTabela").innerHTML = tabela;
+      exibirTabela(dadosLidos);
     };
     reader.readAsArrayBuffer(file);
   });
+
+  function exibirTabela(dados) {
+    const container = document.getElementById("previewTabela");
+    if (dados.length === 0) {
+      container.innerHTML = "<p style='color:#a00;'>Nenhuma linha válida encontrada.</p>";
+      return;
+    }
+
+    let tabela = "<table><thead><tr>";
+    const colunas = Object.keys(dados[0]);
+    colunas.forEach(col => tabela += `<th>${col}</th>`);
+    tabela += "</tr></thead><tbody>";
+
+    dados.forEach(row => {
+      tabela += "<tr>";
+      colunas.forEach(col => tabela += `<td>${row[col]}</td>`);
+      tabela += "</tr>";
+    });
+
+    tabela += "</tbody></table>";
+    container.innerHTML = tabela;
+  }
+
+  async function enviarDados() {
+    if (dadosLidos.length === 0) {
+      alert("Nenhum dado para enviar.");
+      return;
+    }
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "salvar", dados: dadosLidos })
+      });
+
+      if (res.ok) {
+        alert("✅ Dados enviados com sucesso!");
+        document.getElementById("previewTabela").innerHTML = "";
+        dadosLidos = [];
+      } else {
+        alert("❌ Erro ao enviar os dados.");
+      }
+    } catch (e) {
+      alert("❌ Falha na conexão com o servidor.");
+    }
+  }
 
   inicializarCalendario([]);
 </script>
