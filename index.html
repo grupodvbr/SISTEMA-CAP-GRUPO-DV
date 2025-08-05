@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f7f7f7; }
-
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; }
     header {
       background-color: #003366;
       color: white;
@@ -15,16 +14,13 @@
       align-items: center;
       padding: 10px 20px;
     }
-
     header img { height: 40px; margin-right: 15px; }
     header h1 { font-size: 1.4em; margin: 0; }
-
     .container {
       padding: 20px;
       width: 100%;
       box-sizing: border-box;
     }
-
     .import-box {
       background: white;
       border-radius: 10px;
@@ -32,34 +28,24 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       text-align: center;
     }
-
-    .import-box input {
-      margin-top: 10px;
-    }
-
+    .import-box input { margin-top: 10px; }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
       background: white;
     }
-
     th, td {
       border: 1px solid #ddd;
       padding: 8px;
       text-align: left;
       font-size: 14px;
     }
-
     th {
       background-color: #003366;
       color: white;
     }
-
-    tr:hover {
-      background-color: #f1f1f1;
-    }
-
+    tr:hover { background-color: #f1f1f1; }
     .btn-enviar {
       background-color: #28a745;
       color: white;
@@ -70,10 +56,7 @@
       border-radius: 5px;
       font-weight: bold;
     }
-
-    #previewTabela {
-      overflow-x: auto;
-    }
+    #previewTabela { overflow-x: auto; }
   </style>
 </head>
 <body>
@@ -84,7 +67,7 @@
 
   <div class="container">
     <div class="import-box">
-      <p><strong>Selecione um arquivo Excel (.xlsx) no formato de CAP</strong></p>
+      <p><strong>Selecione um arquivo Excel (.xlsx)</strong></p>
       <input type="file" id="inputExcel" accept=".xlsx" />
       <button class="btn-enviar" onclick="enviarDados()">📤 Enviar para planilha</button>
     </div>
@@ -107,7 +90,7 @@
         const raw = XLSX.utils.sheet_to_json(sheet, { range: 10, header: 1 });
 
         dadosLidos = raw
-          .filter(l => l.length > 0 && l[3]) // Ignora linhas sem empresa
+          .filter(l => l.length > 0 && l[3]) // Exige empresa
           .map(l => ({
             Tipo: l[0] || "",
             Numero: l[1] || "",
@@ -123,7 +106,7 @@
             "Centro de Custos": l[11] || ""
           }));
 
-        exibirTabela();
+        exibirTabela(dadosLidos);
       };
       reader.readAsArrayBuffer(file);
     });
@@ -135,21 +118,30 @@
       return parseFloat(valor) || 0;
     }
 
-    function exibirTabela() {
+    function exibirTabela(dados) {
       const container = document.getElementById("previewTabela");
-      if (dadosLidos.length === 0) {
-        container.innerHTML = "<p style='margin-top:20px;color:#a00;'>Nenhuma linha válida encontrada no arquivo.</p>";
+      if (dados.length === 0) {
+        container.innerHTML = "<p style='margin-top:20px;color:#a00;'>Nenhuma linha válida encontrada.</p>";
         return;
       }
 
       let tabela = "<table><thead><tr>";
-      const colunas = Object.keys(dadosLidos[0]);
+      const colunas = Object.keys(dados[0]);
       colunas.forEach(col => tabela += `<th>${col}</th>`);
-      tabela += "</tr></thead><tbody>";
+      tabela += "<th>Status</th><th>Ação</th></tr></thead><tbody>";
 
-      dadosLidos.forEach(row => {
+      dados.forEach(row => {
         tabela += "<tr>";
         colunas.forEach(col => tabela += `<td>${row[col]}</td>`);
+        tabela += `
+          <td>${row.Status || "Pendente"}</td>
+          <td>
+            <select onchange="atualizarStatus('${row.Numero}', this.value)">
+              <option value="Pendente" ${row.Status === "Pendente" ? "selected" : ""}>Pendente</option>
+              <option value="Aprovado" ${row.Status === "Aprovado" ? "selected" : ""}>Aprovado</option>
+              <option value="Recusado" ${row.Status === "Recusado" ? "selected" : ""}>Recusado</option>
+            </select>
+          </td>`;
         tabela += "</tr>";
       });
 
@@ -163,26 +155,50 @@
         return;
       }
 
-      const endpoint = "https://script.google.com/macros/s/AKfycbwqlyHMlZYunktjWGv1YvGZN38Ihmyd5dkSJiPnuLV-fONMpcWH4WFSkqo-bi3FNSKzBQ/exec";
+      const endpoint = "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec";
 
-      try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ dados: dadosLidos })
-        });
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          acao: "salvar",
+          dados: dadosLidos
+        })
+      });
 
-        if (res.ok) {
-          alert("✅ Dados enviados com sucesso!");
-          dadosLidos = [];
-          document.getElementById("previewTabela").innerHTML = "";
-        } else {
-          alert("❌ Erro ao enviar os dados.");
-        }
-      } catch (e) {
-        alert("❌ Falha na conexão com o servidor.");
+      if (res.ok) {
+        alert("✅ Dados salvos com sucesso!");
+        carregarTabela();
+      } else {
+        alert("❌ Erro ao salvar os dados.");
       }
     }
+
+    async function carregarTabela() {
+      const endpoint = "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "listar" })
+      });
+
+      const dados = await res.json();
+      exibirTabela(dados);
+    }
+
+    async function atualizarStatus(numero, novoStatus) {
+      const endpoint = "https://script.google.com/macros/s/SEU_DEPLOY_URL/exec";
+      await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ acao: "atualizarStatus", numero, novoStatus })
+      });
+      carregarTabela();
+    }
+
+    // Carrega a tabela ao abrir a página
+    carregarTabela();
   </script>
 </body>
 </html>
