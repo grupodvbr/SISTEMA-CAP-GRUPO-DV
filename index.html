@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Calendário Empresarial - Grupo DV</title>
+  <title>Painel CAP - Grupo DV</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
@@ -112,15 +112,14 @@
 <div id="calendar"></div>
 
 <div class="import-container">
-  <h2>Importar Planilha de Eventos</h2>
+  <h2>Importar Títulos CAP</h2>
   <input type="file" id="inputExcel" accept=".xlsx" />
   <button onclick="enviarDados()">Enviar para planilha</button>
   <div id="previewTabela"></div>
 </div>
 
 <script>
-  const endpoint = "https://script.google.com/macros/s/AKfycbzPw_KjrLS8dQXoGWaJ2-f84eSlgn3xQE-KJ-wVY8pPhbn1mK5rjUsQxjNamEFsd4Fl/exec";
-
+  const endpoint = "https://script.google.com/macros/s/AKfycbzwWc99Rm9oErJOZz0v8YjjuAwLtQzG8f6PeZVVtg3e9cV8GiGFe5kKbTWGeWFHrzRv/exec";
   const senhas = {
     "MERCATTO DELÍCIA": "1234",
     "VILLA GOURMET": "2345",
@@ -132,13 +131,12 @@
   let calendario;
   let eventosAtual = [];
   let dadosLidos = [];
+  let empresaSelecionada = "";
 
   function inicializarCalendario(eventos = []) {
     const calendarEl = document.getElementById('calendar');
     eventosAtual = eventos;
-
     if (calendario) calendario.destroy();
-
     calendario = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
       locale: 'pt-br',
@@ -152,7 +150,6 @@
         mostrarPopupEventos(info.dateStr, eventos);
       }
     });
-
     calendario.render();
   }
 
@@ -160,7 +157,7 @@
     const eventosDoDia = eventos.filter(ev => ev.date === data);
     const titulo = `Eventos em ${data}`;
     if (eventosDoDia.length > 0) {
-      const lista = eventosDoDia.map(ev => `• ${ev.title}`).join("\n");
+      const lista = eventosDoDia.map(ev => `• ${ev.title} (${ev.status || 'Sem status'})`).join("\n");
       alert(`${titulo}:\n\n${lista}`);
     } else {
       alert(`${titulo}:\n\nNenhum evento cadastrado.`);
@@ -175,22 +172,19 @@
       alert("Preencha todos os campos.");
       return;
     }
-
     if (senha !== senhas[empresa]) {
       alert("Senha incorreta.");
       return;
     }
-
+    empresaSelecionada = empresa;
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acao: "listarEventos", empresa })
       });
-
       const eventos = await res.json();
       inicializarCalendario(eventos);
-
       const hoje = new Date().toISOString().split("T")[0];
       mostrarPopupEventos(hoje, eventos);
     } catch (e) {
@@ -201,31 +195,27 @@
   document.getElementById("inputExcel").addEventListener("change", function (e) {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = function (e) {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(sheet, { range: 10, header: 1 });
-
-      dadosLidos = raw
-        .filter(l => l.length > 0 && l[3])
-        .map(l => ({
-          Tipo: l[0] || "",
-          Numero: l[1] || "",
-          Parcela: l[2] || "",
-          Empresa: l[3] || "",
-          "Cliente / Fornecedor": l[4] || "",
-          Emissao: l[5] || "",
-          Vencimento: l[6] || "",
-          Liquidacao: l[7] || "",
-          "Valor Bruto": l[8] || "",
-          Competencia: l[9] || "",
-          "Plano de Contas": l[10] || "",
-          "Centro de Custos": l[11] || ""
-        }));
-
+      dadosLidos = raw.filter(l => l.length > 0 && l[3]).map(l => ({
+        Tipo: l[0] || "",
+        Numero: l[1] || "",
+        Parcela: l[2] || "",
+        Empresa: l[3] || "",
+        "Cliente / Fornecedor": l[4] || "",
+        Emissao: l[5] || "",
+        Vencimento: l[6] || "",
+        Liquidacao: l[7] || "",
+        "Valor Bruto": l[8] || "",
+        Competencia: l[9] || "",
+        "Plano de Contas": l[10] || "",
+        "Centro de Custos": l[11] || "",
+        Status: l[12] || "Pendente"
+      }));
       exibirTabela(dadosLidos);
     };
     reader.readAsArrayBuffer(file);
@@ -237,18 +227,15 @@
       container.innerHTML = "<p style='color:#a00;'>Nenhuma linha válida encontrada.</p>";
       return;
     }
-
     let tabela = "<table><thead><tr>";
     const colunas = Object.keys(dados[0]);
     colunas.forEach(col => tabela += `<th>${col}</th>`);
     tabela += "</tr></thead><tbody>";
-
     dados.forEach(row => {
       tabela += "<tr>";
       colunas.forEach(col => tabela += `<td>${row[col]}</td>`);
       tabela += "</tr>";
     });
-
     tabela += "</tbody></table>";
     container.innerHTML = tabela;
   }
@@ -258,14 +245,12 @@
       alert("Nenhum dado para enviar.");
       return;
     }
-
     try {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ acao: "salvar", dados: dadosLidos })
       });
-
       if (res.ok) {
         alert("✅ Dados enviados com sucesso!");
         document.getElementById("previewTabela").innerHTML = "";
