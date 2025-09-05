@@ -1,323 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Títulos • Envio (Empresas)</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-  :root{
-    --bg:#0f0f10; --card:#151515; --line:#2a2a2a; --text:#f6f6f6; --muted:#cfcfcf;
-    --brand:#2563eb; --ok:#16a34a; --danger:#ef4444; --chip:#1f2937;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}
-  header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:center;justify-content:space-between}
-  h1{margin:0;font-size:18px;font-weight:800;letter-spacing:.2px}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  button.btn,label.btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:#1a1a1a;color:var(--text);cursor:pointer;font-weight:600}
-  .btn.primary{background:var(--brand);border-color:#1f4fd1}
-  .btn.ghost{background:#111;border-color:#232323}
-  main{padding:16px}
-  .row{display:grid;gap:12px}
-  @media(min-width:980px){ .row{grid-template-columns: 1.2fr .8fr} }
-  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
-  .card h2{margin:0;padding:12px 14px;border-bottom:1px solid var(--line);font-size:14px;font-weight:700}
-  .card .content{padding:12px 14px}
-  .drop{border:2px dashed #2d2d2d;border-radius:12px;padding:22px;text-align:center;cursor:pointer;background:#121212}
-  .drop.hover{border-color:var(--brand);background:#101522}
-  input[type="file"]{display:none}
-  select,input[type="text"],input[type="number"],input[type="date"]{width:100%;background:#121212;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px}
-  table{width:100%;border-collapse:collapse}
-  th,td{border-bottom:1px solid var(--line);padding:10px 8px;font-size:13px}
-  th{color:var(--muted);text-align:left}
-  .right{text-align:right}
-  .muted{color:var(--muted)}
-  .chip{background:var(--chip);padding:4px 10px;border-radius:999px;font-size:12px;border:1px solid #2d2d2d}
-  .inline{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-  .hidden{display:none}
-</style>
+  <meta charset="UTF-8">
+  <title>Painel de Aprovação • F360 Finanças</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {font-family: Arial, sans-serif; background:#f9fafb; margin:0; padding:0;}
+    header {background:#2563eb; color:#fff; padding:1rem; text-align:center;}
+    table {width:100%; border-collapse:collapse; margin:1rem 0;}
+    th, td {padding:0.8rem; border:1px solid #ddd;}
+    th {background:#f3f4f6;}
+    button {padding:0.4rem 0.8rem; border:none; border-radius:6px; cursor:pointer;}
+    .ok{background:#16a34a; color:#fff;}
+    .no{background:#ef4444; color:#fff;}
+  </style>
 </head>
 <body>
-<header>
-  <h1>Títulos • <span class="muted">Envio (Empresas)</span></h1>
-  <div class="actions">
-    <button id="btnExportCSV" class="btn">Exportar CSV</button>
-    <button id="btnExportXLSX" class="btn">Exportar XLSX</button>
-    <button id="btnClearLocal" class="btn ghost">Limpar TUDO (local)</button>
-  </div>
-</header>
+  <header>
+    <h1>Aprovação de Parcelas – F360</h1>
+  </header>
+  <main>
+    <table id="parcelas">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Fornecedor</th>
+          <th>Vencimento</th>
+          <th>Meio de Pagamento</th>
+          <th>Histórico</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <script>
+    async function carregarParcelas(){
+      let res = await fetch("/api/f360");
+      let dados = await res.json();
+      let tbody = document.querySelector("#parcelas tbody");
+      tbody.innerHTML = "";
+      dados.forEach(p => {
+        let tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.empresa}</td>
+          <td>${p.fornecedor}</td>
+          <td>${p.vencimento}</td>
+          <td>${p.meioPagamento}</td>
+          <td>${p.historico}</td>
+          <td>
+            <button class="ok" onclick="acao('${p.id}','aprovar')">Aprovar</button>
+            <button class="no" onclick="acao('${p.id}','negar')">Negar</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
 
-<main>
-  <section class="card">
-    <h2>1) Empresa & Upload</h2>
-    <div class="content">
-      <div class="row">
-        <div>
-          <label class="muted">Empresa</label>
-          <input id="empresa" list="empresas" placeholder="Ex.: MERCATTO DELÍCIA">
-          <datalist id="empresas">
-            <option value="MERCATTO DELÍCIA"></option>
-            <option value="VILLA GOURMET"></option>
-            <option value="PADARIA DELÍCIA"></option>
-            <option value="M.KIDS"></option>
-            <option value="DELÍCIA GOURMET"></option>
-          </datalist>
-        </div>
-        <div class="muted" style="align-self:end">Esta empresa será aplicada em todos os títulos enviados.</div>
-      </div>
-      <div id="drop" class="drop" style="margin-top:10px">
-        <strong>Arraste o arquivo aqui</strong><br>
-        <span class="muted">XLSX, XLS ou CSV</span><br><br>
-        <label class="btn"><input id="file" type="file" accept=".xlsx,.xls,.csv">Selecionar arquivo</label>
-      </div>
-      <p class="muted" id="fileInfo" style="margin-top:8px">Nenhum arquivo carregado.</p>
-    </div>
-  </section>
+    async function acao(id, status){
+      await fetch("/api/approve",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({id, status})
+      });
+      carregarParcelas();
+    }
 
-  <section class="card">
-    <h2>2) Cabeçalho & Mapeamento</h2>
-    <div class="content">
-      <div class="row">
-        <div>
-          <label class="muted">Linha do cabeçalho</label>
-          <input id="headerRow" type="number" min="1" value="1">
-        </div>
-        <div>
-          <label class="muted">Dados a partir da linha</label>
-          <input id="dataStartRow" type="number" min="1" value="2">
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label class="muted">Coluna • Fornecedor</label>
-          <select id="colForn"></select>
-        </div>
-        <div>
-          <label class="muted">Coluna • Vencimento</label>
-          <select id="colVenc"></select>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label class="muted">Coluna • Meio de Pagamento</label>
-          <select id="colMeio"></select>
-        </div>
-        <div>
-          <label class="muted">Coluna • Histórico</label>
-          <select id="colHist"></select>
-        </div>
-      </div>
-
-      <div class="inline" style="margin-top:8px">
-        <button id="btnAplicar" class="btn primary">Aplicar mapeamento</button>
-        <span class="muted" id="countInfo">0 títulos prontos para enviar.</span>
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>3) Conferência & Envio</h2>
-    <div class="content">
-      <div class="inline" style="justify-content:space-between;margin-bottom:8px">
-        <div class="muted">Os títulos listados abaixo serão salvos localmente para aprovação.</div>
-        <div class="actions">
-          <button id="btnSalvar" class="btn">Salvar para Aprovação</button>
-        </div>
-      </div>
-      <div style="max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:10px">
-        <table id="tbl">
-          <thead>
-            <tr>
-              <th>Empresa</th>
-              <th>Fornecedor</th>
-              <th>Vencimento</th>
-              <th>Meio de Pagamento</th>
-              <th>Histórico</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-</main>
-
-<script>
-const KEY = 'titulos_pendentes_v1';
-let RAW=[], HEAD=[], PREVIEW=[];
-
-const drop = document.getElementById('drop');
-['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.add('hover');}));
-['dragleave','drop'].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.remove('hover');}));
-drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files[0]; if(f) readFile(f); });
-document.getElementById('file').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) readFile(f); });
-
-function readFile(file){
-  const reader = new FileReader();
-  reader.onload = e=>{
-    let wb;
-    if(/\.csv$/i.test(file.name)) wb = XLSX.read(e.target.result,{type:'string'});
-    else wb = XLSX.read(e.target.result,{type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    RAW = XLSX.utils.sheet_to_json(ws,{header:1, raw:true, blankrows:false});
-    if(!RAW.length){ alert('Nenhum dado encontrado.'); return; }
-    detectHeader();
-    populateMaps();
-    document.getElementById('fileInfo').textContent = `Arquivo carregado: ${file.name}`;
-  };
-  if(/\.csv$/i.test(file.name)) reader.readAsText(file,'utf-8'); else reader.readAsArrayBuffer(file);
-}
-
-function detectHeader(){
-  let hdrIdx=0;
-  for(let i=0;i<Math.min(RAW.length,20);i++){
-    const filled=(RAW[i]||[]).filter(c => c!=null && String(c).trim()!=='').length;
-    if(filled>=2){ hdrIdx=i; break; }
-  }
-  document.getElementById('headerRow').value=hdrIdx+1;
-  document.getElementById('dataStartRow').value=hdrIdx+2;
-  const row=RAW[hdrIdx]||[];
-  HEAD = row.map((h,i)=>(h==null||String(h).trim()==='')?`Coluna ${i+1}`:String(h));
-}
-
-function populateMaps(){
-  ['colForn','colVenc','colMeio','colHist'].forEach(id=>{
-    const sel=document.getElementById(id);
-    sel.innerHTML = HEAD.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
-  });
-  // heurística
-  setVal('colForn', guess(['forn','provider','favorec']));
-  setVal('colVenc', guess(['venc','due','vencimento','dta venc']));
-  setVal('colMeio', guess(['meio','forma','pag','bandeira','pix','boleto','cart']));
-  setVal('colHist', guess(['hist','descr','obs','memo']));
-}
-
-function guess(keys){
-  let best=0,scoreBest=-1;
-  HEAD.forEach((h,i)=>{
-    const s=String(h).toLowerCase(); let sc=0;
-    keys.forEach(k=>{ if(s.includes(k)) sc+=k.length; });
-    if(sc>scoreBest){ scoreBest=sc; best=i; }
-  });
-  return best;
-}
-
-document.getElementById('btnAplicar').addEventListener('click', ()=>{
-  if(!RAW.length){ alert('Carregue um arquivo.'); return; }
-  const empresa = getVal('empresa').trim();
-  if(!empresa){ alert('Informe a Empresa.'); return; }
-  const headerRow = +getVal('headerRow')||1;
-  const dataStartRow = +getVal('dataStartRow')||2;
-  const startIdx = Math.max(0,dataStartRow-1);
-
-  const map={
-    forn:+getVal('colForn'),
-    venc:+getVal('colVenc'),
-    meio:+getVal('colMeio'),
-    hist:+getVal('colHist'),
-  };
-
-  PREVIEW=[];
-  for(let r=startIdx;r<RAW.length;r++){
-    const row=RAW[r]||[];
-    if(row.every(c=>c==null||String(c).trim?.()==='')) continue;
-
-    const fornecedor = String(row[map.forn]??'').trim();
-    const venc = parseDate(row[map.venc]);
-    const meio = String(row[map.meio]??'').trim();
-    const historico = String(row[map.hist]??'').trim();
-    if(!fornecedor && !venc && !meio && !historico) continue;
-
-    PREVIEW.push({
-      id: 't_'+Date.now()+'_'+r,
-      empresa,
-      fornecedor,
-      vencimento: toISODate(venc),
-      meioPagamento: meio,
-      historico: historico,
-      status: 'PENDENTE',
-      statusDesc: '',
-      statusWhen: null
-    });
-  }
-  renderTable(PREVIEW);
-  document.getElementById('countInfo').textContent = `${PREVIEW.length} títulos prontos para enviar.`;
-});
-
-document.getElementById('btnSalvar').addEventListener('click', ()=>{
-  if(!PREVIEW.length){ alert('Nada para salvar.'); return; }
-  const curr = JSON.parse(localStorage.getItem(KEY)||'[]');
-  // evita duplicar por (empresa, fornecedor, vencimento, historico)
-  const exists = new Set(curr.map(x=>[x.empresa,x.fornecedor,x.vencimento,x.historico].join('|')));
-  PREVIEW.forEach(x=>{
-    const key=[x.empresa,x.fornecedor,x.vencimento,x.historico].join('|');
-    if(!exists.has(key)) curr.push(x);
-  });
-  localStorage.setItem(KEY, JSON.stringify(curr));
-  alert('Títulos salvos para aprovação.');
-});
-
-document.getElementById('btnClearLocal').addEventListener('click', ()=>{
-  if(confirm('Tem certeza que deseja limpar TODOS os títulos salvos localmente?')){
-    localStorage.removeItem(KEY);
-    alert('Local limpo.');
-  }
-});
-
-document.getElementById('btnExportCSV').addEventListener('click', ()=>{
-  const arr = JSON.parse(localStorage.getItem(KEY)||'[]');
-  const out = [['Empresa','Fornecedor','Vencimento','Meio de Pagamento','Histórico','Status','Descrição Status','Data Status']];
-  arr.forEach(x=>out.push([x.empresa,x.fornecedor,x.vencimento,x.meioPagamento,x.historico,x.status,x.statusDesc||'',x.statusWhen||'']));
-  const csv = out.map(r=>r.map(s=>{
-    s=String(s??'');
-    return /[",;\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
-  }).join(';')).join('\n');
-  download(csv, 'titulos_local.csv', 'text/csv');
-});
-
-document.getElementById('btnExportXLSX').addEventListener('click', ()=>{
-  const arr = JSON.parse(localStorage.getItem(KEY)||'[]');
-  const aoa = [['Empresa','Fornecedor','Vencimento','Meio de Pagamento','Histórico','Status','Descrição Status','Data Status']];
-  arr.forEach(x=>aoa.push([x.empresa,x.fornecedor,x.vencimento,x.meioPagamento,x.historico,x.status,x.statusDesc||'',x.statusWhen||'']));
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Títulos');
-  XLSX.writeFile(wb, 'titulos_local.xlsx');
-});
-
-function renderTable(list){
-  const tbody=document.querySelector('#tbl tbody'); tbody.innerHTML='';
-  list.forEach(x=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(x.empresa)}</td>
-      <td>${escapeHtml(x.fornecedor)}</td>
-      <td>${fmtBR(x.vencimento)}</td>
-      <td>${escapeHtml(x.meioPagamento)}</td>
-      <td>${escapeHtml(x.historico)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function parseDate(v){
-  if(v==null||v==='') return null;
-  if(typeof v==='number'){ try{ const o=XLSX.SSF.parse_date_code(v); if(o) return new Date(o.y, o.m-1, o.d);}catch(e){} }
-  const s=String(v).trim();
-  const m=s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
-  if(m){ const d=+m[1], mo=+m[2]-1, y=+m[3]<100?2000+ +m[3]:+m[3]; const dt=new Date(y,mo,d); return isNaN(dt)?null:dt; }
-  const dt=new Date(s); return isNaN(dt)?null:dt;
-}
-function toISODate(dt){ if(!dt) return ''; const y=dt.getFullYear(); const m=String(dt.getMonth()+1).padStart(2,'0'); const d=String(dt.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
-function fmtBR(s){ if(!s) return ''; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
-function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m])); }
-function getVal(id){ return document.getElementById(id).value; }
-function setVal(id,v){ document.getElementById(id).value=v; }
-function download(text, name, mime){ const blob=new Blob([text],{type:mime}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
-</script>
+    carregarParcelas();
+  </script>
 </body>
 </html>
